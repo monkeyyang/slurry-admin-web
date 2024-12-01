@@ -7,29 +7,40 @@ import {
   routerArrays,
   storageLocal
 } from "../utils";
-import {
-  type UserResult,
-  type RefreshTokenResult,
-  getLogin,
-  refreshTokenApi
-} from "@/api/user";
 import { useMultiTagsStoreHook } from "./multiTags";
-import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
+import { removeToken, userKey } from "@/utils/auth";
+import { DictionaryData, TokenDTO } from "@/api/common/login";
+
+const dictionaryListKey = "slurry-dictionary-list";
+const dictionaryMapKey = "slurry-dictionary-map";
 
 export const useUserStore = defineStore({
-  id: "pure-user",
+  id: "slurry-user",
   state: (): userType => ({
     // 头像
-    avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "",
+    avatar: storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo.avatar ?? "",
     // 用户名
-    username: storageLocal().getItem<DataInfo<number>>(userKey)?.username ?? "",
+    username: storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo
+      .username ?? "",
     // 昵称
-    nickname: storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? "",
+    // nickname: storageLocal().getItem<TokenDTO>(userKey)?.nickname ?? "",
     // 页面级别权限
-    roles: storageLocal().getItem<DataInfo<number>>(userKey)?.roles ?? [],
+    roles: storageLocal().getItem<TokenDTO>(userKey)?.currentUser.roleKey
+      ? [storageLocal().getItem<TokenDTO>(userKey)?.currentUser.roleKey]
+      : [],
     // 按钮级别权限
     permissions:
-      storageLocal().getItem<DataInfo<number>>(userKey)?.permissions ?? [],
+      storageLocal().getItem<TokenDTO>(userKey)?.currentUser.permissions ?? [],
+    dictionaryList:
+      storageLocal().getItem<Map<String, Array<DictionaryData>>>(
+        dictionaryListKey
+      ) ?? new Map(),
+    dictionaryMap:
+      storageLocal().getItem<Map<String, Map<String, DictionaryData>>>(
+        dictionaryMapKey
+      ) ?? new Map(),
+    currentUserInfo:
+      storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo ?? {},
     // 是否勾选了登录页的免登录
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天
@@ -64,18 +75,31 @@ export const useUserStore = defineStore({
     SET_LOGINDAY(value: number) {
       this.loginDay = Number(value);
     },
-    /** 登入 */
-    async loginByUsername(data) {
-      return new Promise<UserResult>((resolve, reject) => {
-        getLogin(data)
-          .then(data => {
-            if (data?.success) setToken(data.data);
-            resolve(data);
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
+    /** 存储系统内的字典值 并拆分为Map形式和List形式 */
+    SET_DICTIONARY(dictionary: Map<String, Array<DictionaryData>>) {
+      /** 由于localStorage不能存储Map对象,所以用Obj来装载数据 */
+      const dictionaryMapTmp = {};
+
+      for (const obj in dictionary) {
+        dictionaryMapTmp[obj] = dictionary[obj].reduce((map, dict) => {
+          map[dict.value] = dict;
+          return map;
+        }, {});
+      }
+
+      /** 将字典分成List形式和Map形式 List便于下拉框展示 Map便于匹配值 */
+      this.dictionaryList = dictionary;
+      this.dictionaryMap = dictionaryMapTmp;
+
+      storageLocal().setItem<Map<String, Array<DictionaryData>>>(
+        dictionaryListKey,
+        dictionary
+      );
+
+      storageLocal().setItem<Map<String, Map<String, DictionaryData>>>(
+        dictionaryMapKey,
+        dictionaryMapTmp as Map<String, Map<String, DictionaryData>>
+      );
     },
     /** 前端登出（不调用接口） */
     logOut() {
@@ -88,20 +112,20 @@ export const useUserStore = defineStore({
       router.push("/login");
     },
     /** 刷新`token` */
-    async handRefreshToken(data) {
-      return new Promise<RefreshTokenResult>((resolve, reject) => {
-        refreshTokenApi(data)
-          .then(data => {
-            if (data) {
-              setToken(data.data);
-              resolve(data);
-            }
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
-    }
+    // async handRefreshToken(data) {
+    //   return new Promise<RefreshTokenResult>((resolve, reject) => {
+    //     refreshTokenApi(data)
+    //       .then(data => {
+    //         if (data) {
+    //           setToken(data.data);
+    //           resolve(data);
+    //         }
+    //       })
+    //       .catch(error => {
+    //         reject(error);
+    //       });
+    //   });
+    // }
   }
 });
 

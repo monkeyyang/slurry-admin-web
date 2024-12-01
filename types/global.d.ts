@@ -70,12 +70,13 @@ declare global {
     VITE_CDN: boolean;
     VITE_HIDE_HOME: string;
     VITE_COMPRESSION: ViteCompression;
+    // VITE_APP_BASE_API: string;
   }
 
   /**
    *  继承 `@pureadmin/table` 的 `TableColumns` ，方便全局直接调用
    */
-  interface TableColumnList extends Array<TableColumns> {}
+  interface TableColumnList extends Array<TableColumns> { }
 
   /**
    * 对应 `public/platform-config.json` 文件的类型声明

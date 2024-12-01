@@ -30,6 +30,10 @@ declare global {
     keepAlive?: boolean;
     /** 内嵌的`iframe`链接 `可选` */
     frameSrc?: string;
+    /** 是否是内部页面   使用frameSrc来嵌入页面时，当isFrameSrcInternal=true的时候, 前端需要做特殊处理  */
+    /** 比如链接是 /druid/login.html */
+    /** 前端需要处理成 http://localhost:8080/druid/login.html */
+    isFrameSrcInternal?: boolean;
     /** `iframe`页是否开启首次加载动画（默认`true`）`可选` */
     frameLoading?: boolean;
     /** 页面加载动画（两种模式，第二种权重更高，第一种直接采用`vue`内置的`transitions`动画，第二种是使用`animate.css`编写进、离场动画，平台更推荐使用第二种模式，已经内置了`animate.css`，直接写对应的动画名即可）`可选` */
@@ -104,5 +108,5 @@ declare global {
 
 // https://router.vuejs.org/zh/guide/advanced/meta.html#typescript
 declare module "vue-router" {
-  interface RouteMeta extends CustomizeRouteMeta {}
+  interface RouteMeta extends CustomizeRouteMeta { }
 }

@@ -1,51 +1,31 @@
-<h1>vue-pure-admin精简版（非国际化版本）</h1>
+## Slurry后台框架
 
-[![license](https://img.shields.io/github/license/pure-admin/vue-pure-admin.svg)](LICENSE)
+基于Laravel的前后端分离后台框架
 
-**中文** | [English](./README.en-US.md)
+## 后端
+>  PHP版本：8.3
+>
+>  Laravel版本：v10
+> 
+> 项目地址：https://github.com/dotreen/slurry-admin-api
+> 
+>  数据库：https://github.com/dotreen/slurry-admin-doc
 
-## 介绍
 
-精简版是基于 [vue-pure-admin](https://github.com/pure-admin/vue-pure-admin) 提炼出的架子，包含主体功能，更适合实际项目开发，打包后的大小在全局引入 [element-plus](https://element-plus.org) 的情况下仍然低于 `2.3MB`，并且会永久同步完整版的代码。开启 `brotli` 压缩和 `cdn` 替换本地库模式后，打包大小低于 `350kb`
+## 前端
+based on vue-pure-admin 5.8.0
 
-## 版本选择
-
-当前是非国际化版本，如果您需要国际化版本 [请点击](https://github.com/pure-admin/pure-admin-thin/tree/i18n)
-
-## `js` 版本
-
-[点我查看 js 版本](https://pure-admin.github.io/pure-admin-doc/pages/js/)
-
-## `max` 版本
-
-[点我查看 max 版本](https://github.com/pure-admin/vue-pure-admin-max)
-
-## 配套视频
-
-[点我查看 UI 设计](https://www.bilibili.com/video/BV17g411T7rq)  
-[点我查看快速开发教程](https://www.bilibili.com/video/BV1kg411v7QT)
-
-## 配套保姆级文档
-
-[点我查看 vue-pure-admin 文档](https://pure-admin.github.io/pure-admin-doc)  
-[点我查看 @pureadmin/utils 文档](https://pure-admin-utils.netlify.app)
-
-## 优质服务、软件外包、赞助支持
-
-[点我查看详情](https://pure-admin.github.io/pure-admin-doc/pages/service/)
+项目地址：https://github.com/dotreen/slurry-admin-web
 
 ## 预览
 
-[查看预览](https://pure-admin-thin.netlify.app/#/login)
+[查看预览](http://slurry-admin.dotreen.com)
+>  账号密码：admin/admin123
 
-## 维护者
-
+## 致谢
 [xiaoxian521](https://github.com/xiaoxian521)
-
-## ⚠️ 注意
-
-精简版不接受任何 `issues` 和 `pr`，如果有问题请到完整版 [issues](https://github.com/pure-admin/vue-pure-admin/issues/new/choose) 去提，谢谢！
+[valarchie](https://github.com/valarchie/AgileBoot-Front-End)
 
 ## 许可证
 
-[MIT © 2020-present, pure-admin](./LICENSE)
+[MIT]

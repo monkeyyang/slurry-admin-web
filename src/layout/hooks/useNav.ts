@@ -3,10 +3,11 @@ import { getConfig } from "@/config";
 import { emitter } from "@/utils/mitt";
 import Avatar from "@/assets/user.jpg";
 import { getTopMenu } from "@/router/utils";
+import { routerArrays } from "@/layout/types";
 import { useFullscreen } from "@vueuse/core";
 import type { routeMetaType } from "../types";
 import { useRouter, useRoute } from "vue-router";
-import { router, remainingPaths } from "@/router";
+import { router, remainingPaths, resetRouter } from "@/router";
 import { computed, type CSSProperties } from "vue";
 import { useAppStoreHook } from "@/store/modules/app";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -14,6 +15,8 @@ import { useGlobal, isAllEmpty } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
+import { removeToken } from "@/utils/auth";
+import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 
 const errorInfo =
   "The current routing configuration is incorrect, please check the configuration";
@@ -81,7 +84,18 @@ export function useNav() {
 
   /** 退出登录 */
   function logout() {
-    useUserStoreHook().logOut();
+    // useUserStoreHook().logOut();
+    useUserStoreHook().SET_USERNAME("");
+    useUserStoreHook().SET_ROLES([]);
+    removeToken();
+    useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
+    resetRouter();
+    router.push("/login");
+  }
+
+  /** 个人中心 */
+  function userProfile() {
+    router.push("/global/user/profile");
   }
 
   function backTopMenu() {
@@ -132,6 +146,7 @@ export function useNav() {
     device,
     layout,
     logout,
+    userProfile,
     routers,
     $storage,
     isFullscreen,
