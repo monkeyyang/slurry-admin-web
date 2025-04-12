@@ -53,12 +53,16 @@ const {
   resetForm,
   handleDelete,
   handleBatchDelete,
-  getList
+  getList,
+  tableRef,
+  multipleSelection,
+  handleSelectionChange
 } = useHook();
 
-// 添加多选相关变量
-const multipleSelection = ref([]);
-const hasSelected = computed(() => multipleSelection.value.length > 0);
+// 计算是否有选中项
+const hasSelected = computed(
+  () => multipleSelection.value && multipleSelection.value.length > 0
+);
 
 interface WarehouseQuery {
   pageNum: number;
@@ -235,11 +239,6 @@ async function confirmResetSettle() {
   }
 }
 
-// 处理表格选择变化
-const handleSelectionChange = selection => {
-  multipleSelection.value = selection;
-};
-
 onMounted(() => {
   getWarehouseOptions();
   // 检查单个权限
@@ -342,203 +341,216 @@ const handleSizeChange = (val: number) => {
         </el-form-item>
       </el-form>
 
-      <PureTableBar title="入库管理" :columns="columns" @refresh="getList">
-        <template #buttons>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon(AddFill)"
-            @click="openDialog('新增入库')"
-          >
-            新增入库
-          </el-button>
-          <el-button
-            type="success"
-            :icon="useRenderIcon(Upload)"
-            @click="openBatchDialog"
-          >
-            批量导入
-          </el-button>
-          <el-button
-            type="info"
-            :icon="useRenderIcon(Download)"
-            @click="downloadTemplate"
-          >
-            下载模板
-          </el-button>
-          <el-button
-            type="danger"
-            :icon="useRenderIcon(Delete)"
-            :disabled="!hasSelected"
-            @click="handleBatchDelete"
-          >
-            批量删除
-          </el-button>
-        </template>
-        <template v-slot="{ size, dynamicColumns }">
-          <pure-table
-            border
-            adaptive
-            align-whole="center"
-            table-layout="auto"
-            :loading="pageLoading"
-            :size="size"
-            :data="dataList"
-            :columns="dynamicColumns"
-            :pagination="pagination"
-            :paginationSmall="size === 'small' ? true : false"
-            :header-cell-style="{
-              background: 'var(--el-table-row-hover-bg-color)',
-              color: 'var(--el-text-color-primary)'
-            }"
-            @page-size-change="handleSizeChange"
-            @page-current-change="handlePageChange"
-            @selection-change="handleSelectionChange"
-          >
-            <template #operation="{ row, size }">
-              <el-button
-                class="reset-margin"
-                link
-                type="primary"
-                :size="size"
-                :icon="useRenderIcon(View)"
-                @click="openDialog('查看', row)"
-              >
-                查看
-              </el-button>
-              <el-button
-                class="reset-margin"
-                link
-                type="primary"
-                :size="size"
-                :icon="useRenderIcon(EditPen)"
-                @click="openDialog('编辑', row)"
-              >
-                修改
-              </el-button>
+      <div class="main-content">
+        <PureTableBar title="入库管理" :columns="columns" @refresh="getList">
+          <template #buttons>
+            <el-button
+              v-if="hasPerms('warehouse:inbound:add')"
+              type="primary"
+              :icon="useRenderIcon(AddFill)"
+              @click="openDialog('新增')"
+            >
+              新增
+            </el-button>
+            <el-button
+              type="primary"
+              :icon="useRenderIcon(AddFill)"
+              @click="openBatchDialog"
+            >
+              批量入库
+            </el-button>
+            <el-button
+              type="primary"
+              :icon="useRenderIcon(Download)"
+              @click="downloadTemplate"
+            >
+              下载模板
+            </el-button>
 
-              <!-- 使用hasPerms函数检查权限 -->
-              <el-button
-                v-if="
-                  hasPerms('warehouse:inbound:settle') && row.is_settled === 0
-                "
-                class="reset-margin"
-                link
-                type="success"
-                :size="size"
-                :icon="useRenderIcon(Check)"
-                @click="openSettleDialog(row)"
-              >
-                结算
-              </el-button>
+            <!-- 添加批量删除按钮 -->
+            <el-button
+              v-if="hasPerms('warehouse:inbound:delete')"
+              type="danger"
+              :icon="useRenderIcon(Delete)"
+              :disabled="!hasSelected"
+              @click="handleBatchDelete"
+            >
+              批量删除
+            </el-button>
+          </template>
 
-              <!-- 使用hasAuth函数检查权限 -->
-              <el-button
-                v-if="
-                  hasPerms('warehouse:inbound:reset-settle') &&
-                  row.is_settled === 1
-                "
-                class="reset-margin"
-                link
-                type="warning"
-                :size="size"
-                :icon="useRenderIcon(RefreshLeft)"
-                @click="openResetSettleDialog(row)"
-              >
-                重置结算
-              </el-button>
+          <template v-slot="{ size, dynamicColumns }">
+            <pure-table
+              ref="tableRef"
+              border
+              adaptive
+              align-whole="center"
+              table-layout="auto"
+              :loading="pageLoading"
+              :size="size"
+              :data="dataList"
+              :columns="dynamicColumns"
+              :pagination="pagination"
+              :paginationSmall="size === 'small' ? true : false"
+              :header-cell-style="{
+                background: 'var(--el-table-row-hover-bg-color)',
+                color: 'var(--el-text-color-primary)'
+              }"
+              @page-size-change="handleSizeChange"
+              @page-current-change="handlePageChange"
+              @selection-change="handleSelectionChange"
+            >
+              <template #operation="{ row, size }">
+                <el-button
+                  class="reset-margin"
+                  link
+                  type="primary"
+                  :size="size"
+                  :icon="useRenderIcon(View)"
+                  @click="openDialog('查看', row)"
+                >
+                  查看
+                </el-button>
+                <el-button
+                  class="reset-margin"
+                  link
+                  type="primary"
+                  :size="size"
+                  :icon="useRenderIcon(EditPen)"
+                  @click="openDialog('编辑', row)"
+                >
+                  修改
+                </el-button>
 
-              <el-popconfirm title="是否确认删除?" @confirm="handleDelete(row)">
-                <template #reference>
-                  <el-button
-                    class="reset-margin"
-                    link
-                    type="primary"
-                    :size="size"
-                    :icon="useRenderIcon(Delete)"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-popconfirm>
-            </template>
+                <!-- 使用hasPerms函数检查权限 -->
+                <el-button
+                  v-if="
+                    hasPerms('warehouse:inbound:settle') && row.is_settled === 0
+                  "
+                  class="reset-margin"
+                  link
+                  type="success"
+                  :size="size"
+                  :icon="useRenderIcon(Check)"
+                  @click="openSettleDialog(row)"
+                >
+                  结算
+                </el-button>
 
-            <template #is_settled="{ row }">
-              <el-tag :type="row.is_settled === 1 ? 'success' : 'info'">
-                {{ row.is_settled === 1 ? "已结算" : "未结算" }}
-              </el-tag>
-            </template>
-          </pure-table>
-        </template>
-      </PureTableBar>
-    </div>
+                <!-- 使用hasAuth函数检查权限 -->
+                <el-button
+                  v-if="
+                    hasPerms('warehouse:inbound:reset-settle') &&
+                    row.is_settled === 1
+                  "
+                  class="reset-margin"
+                  link
+                  type="warning"
+                  :size="size"
+                  :icon="useRenderIcon(RefreshLeft)"
+                  @click="openResetSettleDialog(row)"
+                >
+                  重置结算
+                </el-button>
 
-    <!-- 单个入库表单 -->
-    <Form
-      v-model:visible="dialogVisible"
-      :title="dialogTitle"
-      :row="currentRow"
-      :warehouse-options="warehouseOptions"
-      @success="getList"
-    />
+                <el-popconfirm
+                  title="是否确认删除?"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      class="reset-margin"
+                      link
+                      type="primary"
+                      :size="size"
+                      :icon="useRenderIcon(Delete)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </template>
 
-    <!-- 批量入库表单 -->
-    <BatchForm
-      v-model:visible="batchDialogVisible"
-      :warehouse-options="warehouseOptions"
-      @success="getList"
-    />
-
-    <!-- 结算确认弹窗 -->
-    <el-dialog
-      v-model="settleDialogVisible"
-      title="确认结算"
-      width="30%"
-      :close-on-click-modal="false"
-    >
-      <div class="settle-confirm-content">
-        <p>
-          确认将此订单标记为已结算吗？结算后将减少对应仓库货物的未结算数量。
-        </p>
-        <div v-if="currentSettleItem" class="settle-info">
-          <p><strong>仓库：</strong>{{ currentSettleItem.warehouse_name }}</p>
-          <p><strong>货品：</strong>{{ currentSettleItem.goods_name }}</p>
-          <p><strong>数量：</strong>{{ currentSettleItem.quantity || 1 }}</p>
-        </div>
+              <template #is_settled="{ row }">
+                <el-tag :type="row.is_settled === 1 ? 'success' : 'info'">
+                  {{ row.is_settled === 1 ? "已结算" : "未结算" }}
+                </el-tag>
+              </template>
+            </pure-table>
+          </template>
+        </PureTableBar>
       </div>
-      <template #footer>
-        <el-button @click="settleDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmSettle">确认结算</el-button>
-      </template>
-    </el-dialog>
 
-    <!-- 重置结算状态确认弹窗 -->
-    <el-dialog
-      v-model="resetSettleDialogVisible"
-      title="重置结算状态"
-      width="30%"
-      :close-on-click-modal="false"
-    >
-      <div class="settle-confirm-content">
-        <p>
-          确认将此订单重置为未结算状态吗？重置后将增加对应仓库货物的未结算数量。
-        </p>
-        <div v-if="currentSettleItem" class="settle-info">
-          <p><strong>仓库：</strong>{{ currentSettleItem.warehouse_name }}</p>
-          <p><strong>货品：</strong>{{ currentSettleItem.goods_name }}</p>
-          <p><strong>数量：</strong>{{ currentSettleItem.quantity || 1 }}</p>
+      <!-- 单个入库表单 -->
+      <Form
+        v-model:visible="dialogVisible"
+        :title="dialogTitle"
+        :row="currentRow"
+        :warehouse-options="warehouseOptions"
+        @success="getList"
+      />
+
+      <!-- 批量入库表单 -->
+      <BatchForm
+        v-model:visible="batchDialogVisible"
+        :warehouse-options="warehouseOptions"
+        @success="getList"
+      />
+
+      <!-- 结算确认弹窗 -->
+      <el-dialog
+        v-model="settleDialogVisible"
+        title="确认结算"
+        width="30%"
+        :close-on-click-modal="false"
+      >
+        <div class="settle-confirm-content">
           <p>
-            <strong>结算人：</strong>{{ currentSettleItem.settle_user_name }}
+            确认将此订单标记为已结算吗？结算后将减少对应仓库货物的未结算数量。
           </p>
-          <p><strong>结算时间：</strong>{{ currentSettleItem.settle_time }}</p>
+          <div v-if="currentSettleItem" class="settle-info">
+            <p><strong>仓库：</strong>{{ currentSettleItem.warehouse_name }}</p>
+            <p><strong>货品：</strong>{{ currentSettleItem.goods_name }}</p>
+            <p><strong>数量：</strong>{{ currentSettleItem.quantity || 1 }}</p>
+          </div>
         </div>
-      </div>
-      <template #footer>
-        <el-button @click="resetSettleDialogVisible = false">取消</el-button>
-        <el-button type="warning" @click="confirmResetSettle"
-          >确认重置</el-button
-        >
-      </template>
-    </el-dialog>
+        <template #footer>
+          <el-button @click="settleDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmSettle">确认结算</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 重置结算状态确认弹窗 -->
+      <el-dialog
+        v-model="resetSettleDialogVisible"
+        title="重置结算状态"
+        width="30%"
+        :close-on-click-modal="false"
+      >
+        <div class="settle-confirm-content">
+          <p>
+            确认将此订单重置为未结算状态吗？重置后将增加对应仓库货物的未结算数量。
+          </p>
+          <div v-if="currentSettleItem" class="settle-info">
+            <p><strong>仓库：</strong>{{ currentSettleItem.warehouse_name }}</p>
+            <p><strong>货品：</strong>{{ currentSettleItem.goods_name }}</p>
+            <p><strong>数量：</strong>{{ currentSettleItem.quantity || 1 }}</p>
+            <p>
+              <strong>结算人：</strong>{{ currentSettleItem.settle_user_name }}
+            </p>
+            <p>
+              <strong>结算时间：</strong>{{ currentSettleItem.settle_time }}
+            </p>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="resetSettleDialogVisible = false">取消</el-button>
+          <el-button type="warning" @click="confirmResetSettle"
+            >确认重置</el-button
+          >
+        </template>
+      </el-dialog>
+    </div>
   </div>
 </template>
 

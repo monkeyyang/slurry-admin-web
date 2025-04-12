@@ -1,7 +1,11 @@
 import { reactive, ref } from "vue";
 import type { PaginationProps } from "@pureadmin/table";
 import { message } from "@/utils/message";
-import { getInboundListApi, deleteInboundApi } from "@/api/warehouse/inbound";
+import {
+  getInboundListApi,
+  deleteInboundApi,
+  batchDeleteInboundApi
+} from "@/api/warehouse/inbound";
 import { usePublicHooks } from "@/views/system/hooks";
 import type { FormInstance } from "element-plus";
 import { ElMessageBox } from "element-plus";
@@ -22,6 +26,7 @@ export function useHook() {
   const formRef = ref<FormInstance>();
   const pageLoading = ref(false);
   const { switchStyle } = usePublicHooks();
+  const tableRef = ref();
 
   const dataList = ref([]);
   const multipleSelection = ref([]);
@@ -194,51 +199,63 @@ export function useHook() {
     }
   };
 
+  /** 处理表格选择变化 */
+  const handleSelectionChange = selection => {
+    console.log("选择变化:", selection);
+    multipleSelection.value = selection;
+  };
+
   /** 批量删除入库记录 */
-  const handleBatchDelete = async () => {
-    console.log("当前选中项:", multipleSelection.value);
+  const handleBatchDelete = () => {
+    console.log(
+      "当前选中项:",
+      JSON.stringify(multipleSelection.value, null, 2)
+    );
+
     if (multipleSelection.value.length === 0) {
       message("请至少选择一条记录", { type: "warning" });
       return;
     }
 
-    try {
-      await ElMessageBox.confirm(
-        `确认删除选中的 ${multipleSelection.value.length} 条记录吗？此操作不可逆`,
-        "警告",
-        {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning"
-        }
-      );
-
-      pageLoading.value = true;
-      // 获取所有选中项的ID
-      const ids = multipleSelection.value.map(item => item.id);
-
-      // 调用批量删除API
-      // 注意：您需要在API中实现批量删除的接口
-      await batchDeleteInboundApi(ids);
-
-      message("批量删除成功", { type: "success" });
-      // 刷新列表
-      getList();
-      // 清空选择
-      multipleSelection.value = [];
-    } catch (error) {
-      if (error !== "cancel") {
-        console.error("批量删除失败", error);
-        message("批量删除失败", { type: "error" });
+    ElMessageBox.confirm(
+      `确认删除选中的 ${multipleSelection.value.length} 条记录吗？此操作不可逆`,
+      "警告",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
       }
-    } finally {
-      pageLoading.value = false;
-    }
-  };
+    )
+      .then(async () => {
+        try {
+          pageLoading.value = true;
+          // 获取所有选中项的ID
+          const ids = multipleSelection.value.map(item => item.id);
 
-  /** 处理表格选择变化 */
-  const handleSelectionChange = selection => {
-    multipleSelection.value = selection;
+          // 使用API函数而不是直接调用http.delete
+          await batchDeleteInboundApi(ids);
+
+          message("批量删除成功", { type: "success" });
+          // 刷新列表
+          getList();
+          // 清空选择
+          if (tableRef.value && tableRef.value.getTableRef) {
+            const { clearSelection } = tableRef.value.getTableRef();
+            clearSelection();
+          }
+          multipleSelection.value = [];
+        } catch (error) {
+          if (error !== "cancel") {
+            console.error("批量删除失败", error);
+            message("批量删除失败", { type: "error" });
+          }
+        } finally {
+          pageLoading.value = false;
+        }
+      })
+      .catch(() => {
+        // 用户取消删除
+      });
   };
 
   getList();
@@ -250,6 +267,7 @@ export function useHook() {
     pagination,
     searchFormParams,
     pageLoading,
+    tableRef,
     multipleSelection,
     getList,
     onSearch,
