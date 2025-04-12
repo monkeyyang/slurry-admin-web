@@ -1,9 +1,9 @@
 import Axios, {
-  AxiosInstance,
-  AxiosRequestConfig,
-  CustomParamsSerializer
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type CustomParamsSerializer
 } from "axios";
-import {
+import type {
   PureHttpError,
   RequestMethods,
   PureHttpResponse,
@@ -20,6 +20,7 @@ import { downloadByData } from "@pureadmin/utils";
 // console.log("Utils:" + router);
 
 const { VITE_APP_BASE_API } = import.meta.env;
+console.log("VITE_APP_BASE_API2", VITE_APP_BASE_API);
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
@@ -90,10 +91,10 @@ class PureHttp {
         return whiteList.some(v => config.url.endsWith(v))
           ? config
           : new Promise(resolve => {
-            const data = getToken();
-            config.headers["Authorization"] = formatToken(data.token);
-            resolve(config);
-          });
+              const data = getToken();
+              config.headers["Authorization"] = formatToken(data.token);
+              resolve(config);
+            });
       },
       error => {
         return Promise.reject(error);

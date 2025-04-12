@@ -151,6 +151,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.document.removeEventListener("keypress", onkeypress);
 });
+
+function toRegister() {
+  router.push("/register");
+}
 </script>
 
 <template>
@@ -166,10 +170,18 @@ onBeforeUnmount(() => {
         @change="dataThemeChange"
       />
     </div>
-    <div class="login-container" style="height: 90vh;display: flex; justify-content: center; align-items: center;">
+    <div
+      class="login-container"
+      style="
+        height: 90vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      "
+    >
       <!-- <div class="img"> -->
-        <!-- 登录页面的背景图 -->
-        <!-- <component :is="toRaw(illustration)" /> -->
+      <!-- 登录页面的背景图 -->
+      <!-- <component :is="toRaw(illustration)" /> -->
       <!-- </div> -->
       <div class="login-box">
         <div class="login-form">
@@ -318,20 +330,29 @@ onBeforeUnmount(() => {
             v-if="currentPage === 4"
             v-model:current-page="currentPage"
           />
+
+          <div class="login-options">
+            <div class="register-link">
+              没有账号？
+              <el-button type="primary" link @click="toRegister">
+                立即注册
+              </el-button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <!--  底部  -->
     <div class="flex items-center justify-center h-full">
       <div class="flex flex-col items-center justify-center mb-3">
-        <span>Slurry-Admin ©2024 powered by Dotreen</span>
-        <el-link
+        <span>粤顺 ©2025 powered by ys</span>
+        <!-- <el-link
           href="https://beian.miit.gov.cn"
           rel="external nofollow"
           target="_blank"
           type="primary"
           >蜀ICP备2024109404号-2
-        </el-link>
+        </el-link> -->
       </div>
     </div>
   </div>

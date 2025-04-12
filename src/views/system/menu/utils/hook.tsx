@@ -4,14 +4,14 @@ import { handleTree, setDisabledForTreeOptions } from "@/utils/tree";
 import { message } from "@/utils/message";
 import { transferToStandardRouterData } from "./menuLogic";
 import {
-  MenuDTO,
-  MenuRequest,
+  type MenuDTO,
+  type MenuRequest,
   getMenuListApi,
   addMenuApi,
   deleteMenuApi,
   getMenuInfoApi,
   updateMenuApi,
-  MenuDetailDTO
+  type MenuDetailDTO
 } from "@/api/system/menu";
 import { usePublicHooks } from "../../hooks";
 import { addDialog } from "@/components/ReDialog";
@@ -82,7 +82,7 @@ export function useHook() {
       minWidth: 100,
       cellRenderer: ({ row, props }) => (
         <el-tag size={props.size} style={tagStyle.value(row.status)}>
-          {row.status === 'ENABLED' ? "启用" : "停用"}
+          {row.status === "ENABLED" ? "启用" : "停用"}
         </el-tag>
       )
     },

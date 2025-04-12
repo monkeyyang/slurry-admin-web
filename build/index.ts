@@ -1,3 +1,17 @@
+/** 通用的键值对类型 */
+type Recordable<T = any> = Record<string, T>;
+
+/** Vite环境变量配置接口 */
+interface ViteEnv {
+  VITE_PORT: number;
+  VITE_PUBLIC_PATH: string;
+  VITE_ROUTER_HISTORY: string;
+  VITE_CDN: boolean;
+  VITE_HIDE_HOME: string;
+  VITE_COMPRESSION: "none" | "gzip" | "brotli" | "both";
+  VITE_APP_BASE_API: string;
+}
+
 /** 处理环境变量 */
 const wrapperEnv = (envConfigs: Recordable): ViteEnv => {
   /** 此处为默认值 */
@@ -17,8 +31,8 @@ const wrapperEnv = (envConfigs: Recordable): ViteEnv => {
       realConfigValue === "true"
         ? true
         : realConfigValue === "false"
-        ? false
-        : realConfigValue;
+          ? false
+          : realConfigValue;
 
     if (configName === "VITE_PORT") {
       realConfigValue = Number(realConfigValue);

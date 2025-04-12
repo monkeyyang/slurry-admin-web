@@ -87,9 +87,13 @@ export interface PasswordRequest {
 
 /** 获取用户列表 */
 export const getUserListApi = (params?: UserQuery) => {
-  return http.request<ResponseData<PageDTO<UserDTO>>>("get", "/admin/user/list", {
-    params
-  });
+  return http.request<ResponseData<PageDTO<UserDTO>>>(
+    "get",
+    "/admin/user/list",
+    {
+      params
+    }
+  );
 };
 
 /** 获取当前用户信息 */
@@ -113,34 +117,26 @@ export const updateUserApi = (userId: number, data?: UserRequest) => {
 
 /** 更改用户密码 */
 export const updateUserPasswordApi = (data?: PasswordRequest) => {
-  return http.request<ResponseData<void>>(
-    "post",
-    `/admin/user/resetPassword`,
-    {
-      data
-    }
-  );
+  return http.request<ResponseData<void>>("post", `/admin/user/resetPassword`, {
+    data
+  });
 };
 
 /** 删除用户 */
 export const deleteUserApi = (userId: number) => {
   return http.request<ResponseData<void>>("post", "/admin/user/delete", {
-    data: { "id": userId }
+    data: { id: userId }
   });
 };
 
 /** 修改用户状态 */
 export const updateUserStatusApi = (userId: number, status: number) => {
-  return http.request<ResponseData<void>>(
-    "post",
-    `/admin/user/updateStatus`,
-    {
-      data: {
-        id: userId,
-        status: status
-      }
+  return http.request<ResponseData<void>>("post", `/admin/user/updateStatus`, {
+    data: {
+      id: userId,
+      status: status
     }
-  );
+  });
 };
 
 /** 批量导出用户 */

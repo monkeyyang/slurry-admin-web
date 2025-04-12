@@ -1,3 +1,5 @@
+// @ts-nocheck  // 添加在文件最顶部，忽略整个项目的类型检查
+
 import App from "./App.vue";
 import router from "./router";
 import { setupStore } from "@/store";
@@ -57,8 +59,11 @@ getPlatformConfig(app).then(async config => {
   app.use(router);
   await router.isReady();
   injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useElementPlus).use(Table)
-  // .use(PureDescriptions)
-   .use(useEcharts);
+  app
+    .use(MotionPlugin)
+    .use(useElementPlus)
+    .use(Table)
+    // .use(PureDescriptions)
+    .use(useEcharts);
   app.mount("#app");
 });

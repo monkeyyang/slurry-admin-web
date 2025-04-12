@@ -8,6 +8,7 @@ import {
   pathResolve,
   __APP_INFO__
 } from "./build/utils";
+// import type { IncomingMessage } from "http";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
@@ -26,9 +27,14 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/dev-api": {
-          target: "http://slurry-admin-api.test/",
+          target: "https://slurry-api.1105.me/",
           changeOrigin: true,
           rewrite: path => path.replace(/^\/dev-api/, "")
+        },
+        "/api": {
+          target: "https://slurry-api.1105.me/",
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/api/, "")
         }
       },
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布

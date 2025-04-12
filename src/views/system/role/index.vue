@@ -101,11 +101,7 @@ async function openDialog(type: "add" | "update", row?: RoleDTO) {
       </el-form-item>
     </el-form>
 
-    <PureTableBar
-      title="角色列表"
-      :columns="columns"
-      @refresh="onSearch"
-    >
+    <PureTableBar title="角色列表" :columns="columns" @refresh="onSearch">
       <template #buttons>
         <el-button
           type="primary"
@@ -138,13 +134,13 @@ async function openDialog(type: "add" | "update", row?: RoleDTO) {
         >
           <template #operation="{ row }">
             <el-button
+              v-if="row.id != 1"
               class="reset-margin"
               link
               type="primary"
               :size="size"
               :icon="useRenderIcon(EditPen)"
               @click="openDialog('update', row)"
-              v-if="row.id != 1"
             >
               修改
             </el-button>
@@ -154,12 +150,12 @@ async function openDialog(type: "add" | "update", row?: RoleDTO) {
             >
               <template #reference>
                 <el-button
+                  v-if="row.id != 1"
                   class="reset-margin"
                   link
                   type="primary"
                   :size="size"
                   :icon="useRenderIcon(Delete)"
-                  v-if="row.id != 1"
                 >
                   删除
                 </el-button>

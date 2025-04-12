@@ -1,5 +1,5 @@
 import { http } from "@/utils/http";
-import { Tree } from "@/utils/tree";
+import type { Tree } from "@/utils/tree";
 
 export interface MenuQuery {
   is_button: boolean;
@@ -94,7 +94,9 @@ export const getMenuListApi = (params: MenuQuery) => {
 
 /** 添加菜单 */
 export const addMenuApi = (data: MenuRequest) => {
-  return http.request<ResponseData<void>>("post", "/admin/menu/create", { data });
+  return http.request<ResponseData<void>>("post", "/admin/menu/create", {
+    data
+  });
 };
 
 /** 修改菜单 */

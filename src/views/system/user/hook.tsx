@@ -1,22 +1,22 @@
 import dayjs from "dayjs";
 import { message } from "@/utils/message";
 import {
-  UserQuery,
+  type UserQuery,
   getUserListApi,
   addUserApi,
   updateUserStatusApi,
   updateUserApi,
   exportUserExcelApi,
-  UserRequest,
+  type UserRequest,
   deleteUserApi,
-  PasswordRequest,
+  type PasswordRequest,
   updateUserPasswordApi
 } from "@/api/system/user";
 import editForm from "./form.vue";
 import passwordForm from "./passwordForm.vue";
 import uploadForm from "./uploadForm.vue";
 import { ElMessageBox } from "element-plus";
-import { type PaginationProps } from "@pureadmin/table";
+import type { PaginationProps } from "@pureadmin/table";
 import { reactive, ref, computed, onMounted, toRaw, h } from "vue";
 import { CommonUtils } from "@/utils/common";
 import { addDialog } from "@/components/ReDialog";
@@ -74,7 +74,7 @@ export function useHook() {
       minWidth: 90,
       cellRenderer: ({ row, props }) => {
         let gender_desc = "未知";
-        let style = "info"
+        let style = "info";
         if (row.gender === "MALE") {
           gender_desc = "男";
           style = "";
@@ -83,14 +83,10 @@ export function useHook() {
           style = "danger";
         }
         return (
-          <el-tag
-            size={props.size}
-            type={style}
-            effect="plain"
-          >
+          <el-tag size={props.size} type={style} effect="plain">
             {gender_desc}
           </el-tag>
-        )
+        );
       }
     },
     // {
@@ -165,8 +161,10 @@ export function useHook() {
 
   function onChange({ row, index }) {
     ElMessageBox.confirm(
-      `确认要<strong>${row.status === "DISABLED" ? "停用" : "启用"
-      }</strong><strong style='color:var(--el-color-primary)'>${row.username
+      `确认要<strong>${
+        row.status === "DISABLED" ? "停用" : "启用"
+      }</strong><strong style='color:var(--el-color-primary)'>${
+        row.username
       }</strong>用户吗?`,
       "系统提示",
       {
@@ -191,7 +189,9 @@ export function useHook() {
           type: "info"
         });
         // 如果取消的话 恢复更改前的状态
-        row.status === "DISABLED" ? (row.status = "ENABLED") : (row.status = "DISABLED");
+        row.status === "DISABLED"
+          ? (row.status = "ENABLED")
+          : (row.status = "DISABLED");
       });
   }
 

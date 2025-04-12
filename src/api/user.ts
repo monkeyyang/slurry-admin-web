@@ -39,7 +39,19 @@ export const getLogin = (data?: object) => {
   return http.request<UserResult>("post", "/login", { data });
 };
 
-/** 刷新`token` */
+/** 注册 */
+export const register = (data?: object) => {
+  // 使用标准的 headers 配置来传递额外信息
+  return http.request("post", "/register", {
+    data,
+    headers: {
+      // 添加一个自定义头，表示这是注册请求
+      "X-Register-Request": "true"
+    }
+  });
+};
+
+/** 刷新token */
 export const refreshTokenApi = (data?: object) => {
   return http.request<RefreshTokenResult>("post", "/refresh-token", { data });
 };

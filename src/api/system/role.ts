@@ -21,10 +21,7 @@ export interface RoleDTO {
 }
 
 export function getAllRoleApi() {
-  return http.request<ResponseData<Array<RoleDTO>>>(
-    "get",
-    "/admin/role/all"
-  );
+  return http.request<ResponseData<Array<RoleDTO>>>("get", "/admin/role/all");
 }
 
 export function getRoleListApi(params: RoleQuery) {
@@ -79,7 +76,7 @@ export function updateRoleStatusApi(roleId: number, status: string) {
   return http.request<void>("post", "/admin/role/updateStatus", {
     data: {
       id: roleId,
-      status: status,
+      status: status
     }
   });
 }

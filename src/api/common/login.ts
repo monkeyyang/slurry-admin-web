@@ -89,6 +89,8 @@ export const getCaptchaCode = () => {
 
 /** 登录接口 */
 export const loginByPassword = (data: LoginByPasswordDTO) => {
+  console.log(data);
+  // 使用相对路径，让代理来处理
   return http.request<ResponseData<TokenDTO>>("post", "/login", { data });
 };
 

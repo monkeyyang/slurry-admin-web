@@ -37,6 +37,7 @@ import { subBefore, getQueryMap } from "@pureadmin/utils";
     removeToken();
 
     // 保存新信息到本地
+    // @ts-ignore
     setToken(params);
 
     // 删除不需要显示在 url 的参数

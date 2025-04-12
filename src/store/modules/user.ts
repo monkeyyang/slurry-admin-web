@@ -9,7 +9,7 @@ import {
 } from "../utils";
 import { useMultiTagsStoreHook } from "./multiTags";
 import { removeToken, userKey } from "@/utils/auth";
-import { DictionaryData, TokenDTO } from "@/api/common/login";
+import type { DictionaryData, TokenDTO } from "@/api/common/login";
 
 const dictionaryListKey = "slurry-dictionary-list";
 const dictionaryMapKey = "slurry-dictionary-map";
@@ -18,10 +18,13 @@ export const useUserStore = defineStore({
   id: "slurry-user",
   state: (): userType => ({
     // 头像
-    avatar: storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo.avatar ?? "",
+    avatar:
+      storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo.avatar ??
+      "",
     // 用户名
-    username: storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo
-      .username ?? "",
+    username:
+      storageLocal().getItem<TokenDTO>(userKey)?.currentUser.userInfo
+        .username ?? "",
     // 昵称
     // nickname: storageLocal().getItem<TokenDTO>(userKey)?.nickname ?? "",
     // 页面级别权限
@@ -35,6 +38,7 @@ export const useUserStore = defineStore({
       storageLocal().getItem<Map<String, Array<DictionaryData>>>(
         dictionaryListKey
       ) ?? new Map(),
+    // @ts-ignore
     dictionaryMap:
       storageLocal().getItem<Map<String, Map<String, DictionaryData>>>(
         dictionaryMapKey
@@ -110,7 +114,7 @@ export const useUserStore = defineStore({
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();
       router.push("/login");
-    },
+    }
     /** 刷新`token` */
     // async handRefreshToken(data) {
     //   return new Promise<RefreshTokenResult>((resolve, reject) => {
