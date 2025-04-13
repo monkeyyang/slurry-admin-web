@@ -8,7 +8,8 @@ import {
   deleteGoodsApi,
   updateGoodsApi,
   deleteGoodsAliasApi,
-  getGoodsDetailApi
+  getGoodsDetailApi,
+  batchDeleteGoodsApi
 } from "@/api/warehouse/goods";
 import { usePublicHooks } from "@/views/system/hooks";
 import type { FormInstance } from "element-plus";
@@ -21,6 +22,7 @@ export function useHook() {
   const { switchStyle } = usePublicHooks();
   const editDialogVisible = ref(false);
   const currentId = ref<string | number | null>(null);
+  const tableRef = ref();
 
   const formData = reactive({
     id: undefined,
@@ -29,6 +31,7 @@ export function useHook() {
   });
 
   const dataList = ref([]);
+  const multipleSelection = ref([]);
 
   const pagination = reactive<PaginationProps>({
     total: 0,
@@ -42,6 +45,11 @@ export function useHook() {
   });
 
   const columns: TableColumnList = [
+    {
+      type: "selection",
+      align: "left",
+      width: 55
+    },
     {
       label: "货品名称",
       prop: "name",
@@ -315,6 +323,61 @@ export function useHook() {
     formData.aliases.splice(index, 1);
   };
 
+  /** 处理表格选择变化 */
+  const handleSelectionChange = selection => {
+    multipleSelection.value = selection;
+    console.log("选择变化:", JSON.stringify(selection, null, 2));
+  };
+
+  /** 批量删除货品 */
+  const handleBatchDelete = async () => {
+    console.log(
+      "当前选中项:",
+      JSON.stringify(multipleSelection.value, null, 2)
+    );
+
+    if (multipleSelection.value.length === 0) {
+      message("请至少选择一条记录", { type: "warning" });
+      return;
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        `确认删除选中的 ${multipleSelection.value.length} 条货品吗？此操作不可逆`,
+        "警告",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning"
+        }
+      );
+
+      pageLoading.value = true;
+      // 获取所有选中项的ID
+      const ids = multipleSelection.value.map(item => item.id);
+
+      // 调用批量删除API
+      await batchDeleteGoodsApi(ids);
+
+      message("批量删除成功", { type: "success" });
+      // 刷新列表
+      getList();
+      // 清空选择
+      if (tableRef.value && tableRef.value.getTableRef) {
+        const { clearSelection } = tableRef.value.getTableRef();
+        clearSelection();
+      }
+      multipleSelection.value = [];
+    } catch (error) {
+      if (error !== "cancel") {
+        console.error("批量删除失败", error);
+        message("批量删除失败", { type: "error" });
+      }
+    } finally {
+      pageLoading.value = false;
+    }
+  };
+
   // 初始加载
   getList();
 
@@ -327,6 +390,8 @@ export function useHook() {
     searchFormParams,
     pageLoading,
     editDialogVisible,
+    tableRef,
+    multipleSelection,
     getList,
     onSearch,
     resetForm,
@@ -336,6 +401,8 @@ export function useHook() {
     handleDelete,
     handleDeleteAlias,
     addAlias,
-    removeAlias
+    removeAlias,
+    handleBatchDelete,
+    handleSelectionChange
   };
 }

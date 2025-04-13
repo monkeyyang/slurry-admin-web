@@ -65,6 +65,12 @@ export function useHook() {
       width: 120
     },
     {
+      label: "客户",
+      prop: "create_user_name",
+      width: 120,
+      cellRenderer: ({ row }) => <div>{row.create_user_name || "-"}</div>
+    },
+    {
       label: "货品名称",
       prop: "goods_name",
       minWidth: 200

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useHook } from "./hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -32,7 +32,10 @@ const {
   onSearch,
   resetForm,
   handleDelete,
-  getList
+  getList,
+  multipleSelection,
+  handleBatchDelete,
+  handleSelectionChange
 } = useHook();
 
 // 在组件挂载后立即获取数据
@@ -53,6 +56,11 @@ function openDialog(title: string, row?: any) {
 
 // 调试输出
 console.log("初始化时的数据列表:", dataList.value);
+
+// 计算是否有选中项
+const hasSelected = computed(
+  () => multipleSelection.value && multipleSelection.value.length > 0
+);
 </script>
 
 <template>
@@ -110,6 +118,16 @@ console.log("初始化时的数据列表:", dataList.value);
           >
             新增
           </el-button>
+
+          <!-- 添加批量删除按钮 -->
+          <el-button
+            type="danger"
+            :icon="useRenderIcon(Delete)"
+            :disabled="!hasSelected"
+            @click="handleBatchDelete"
+          >
+            批量删除
+          </el-button>
         </template>
         <template v-slot="{ size, dynamicColumns }">
           <pure-table
@@ -130,6 +148,7 @@ console.log("初始化时的数据列表:", dataList.value);
             }"
             @page-size-change="getList"
             @page-current-change="getList"
+            @selection-change="handleSelectionChange"
           >
             <template #operation="{ row, size }">
               <el-button

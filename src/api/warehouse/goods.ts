@@ -134,3 +134,8 @@ export const deleteGoodsAliasApi = (id: string | number) => {
 export const updateGoodsStatusApi = (id: number | string, status: string) => {
   return http.request("put", `/warehouse/goods/${id}/status/${status}`);
 };
+
+// 批量删除货品
+export function batchDeleteGoodsApi(ids: number[]) {
+  return http.request("delete", "/warehouse/goods/batch", { data: { ids } });
+}
