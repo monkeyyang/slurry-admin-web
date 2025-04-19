@@ -270,6 +270,28 @@ const handleSizeChange = (val: number) => {
   pagination.currentPage = 1;
   getList();
 };
+
+// 获取状态样式
+const getStatusType = status => {
+  const statusMap = {
+    0: "info", // 未审核
+    1: "success", // 已审核
+    2: "warning", // 部分入库
+    3: "primary" // 已完成
+  };
+  return statusMap[status] || "info";
+};
+
+// 获取状态文本
+const getStatusText = status => {
+  const statusMap = {
+    0: "未审核",
+    1: "已审核",
+    2: "部分入库",
+    3: "已完成"
+  };
+  return statusMap[status] || "未知";
+};
 </script>
 
 <template>
@@ -474,6 +496,13 @@ const handleSizeChange = (val: number) => {
               <template #is_settled="{ row }">
                 <el-tag :type="row.is_settled === 1 ? 'success' : 'info'">
                   {{ row.is_settled === 1 ? "已结算" : "未结算" }}
+                </el-tag>
+              </template>
+
+              <!-- 自定义状态 -->
+              <template #status="{ row }">
+                <el-tag :type="getStatusType(row.status)">
+                  {{ getStatusText(row.status) }}
                 </el-tag>
               </template>
             </pure-table>
