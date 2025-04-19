@@ -6,7 +6,9 @@ import { ElMessageBox } from "element-plus";
 import {
   addForecastApi,
   importForecastApi,
-  getForecastListApi
+  getForecastListApi,
+  deleteForecastApi,
+  batchDeleteForecastApi
 } from "@/api/warehouse/forecast";
 
 // 定义表格列类型
@@ -245,7 +247,7 @@ export function useHook() {
     );
     try {
       // TODO: 调用删除API
-      // await deleteForecastApi(row.id);
+      await deleteForecastApi(row.id);
       message("删除成功", { type: "success" });
       getList();
     } catch (error) {
@@ -340,14 +342,12 @@ export function useHook() {
       }
     );
 
-    try {
-      // TODO: 调用批量删除API
-      // const ids = rows.map(row => row.id);
-      // await batchDeleteForecastApi(ids);
+    const res = await batchDeleteForecastApi(rows.map(row => row.id));
+    if (res.code === 0) {
       message("删除成功", { type: "success" });
       getList();
-    } catch (error) {
-      message("删除失败", { type: "error" });
+    } else {
+      message(res.message || "删除失败", { type: "error" });
     }
   };
 

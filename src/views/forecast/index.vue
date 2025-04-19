@@ -13,6 +13,7 @@ import ImportExcel from "./components/ImportExcel.vue";
 import AddUrl from "./components/AddUrl.vue";
 import ScanDialog from "./components/ScanDialog.vue";
 import EditDialog from "./components/EditDialog.vue";
+import ImportStorage from "./components/ImportStorage.vue";
 
 defineOptions({
   name: "PreorderManage"
@@ -25,6 +26,7 @@ const dialogTitle = ref("");
 const currentRow = ref<any>({});
 const scanDialogVisible = ref(false);
 const editDialogVisible = ref(false);
+const importStorageVisible = ref(false);
 
 const {
   searchFormParams,
@@ -82,6 +84,11 @@ const openScanDialog = (row: any) => {
 const openEditDialog = (row: any) => {
   currentRow.value = row;
   editDialogVisible.value = true;
+};
+
+// 打开导入入库弹窗
+const openImportStorageDialog = () => {
+  importStorageVisible.value = true;
 };
 
 onMounted(() => {
@@ -153,7 +160,7 @@ const handleCurrentChange = (val: number) => {
     <PureTableBar title="货物预报管理" :columns="columns" @refresh="getList">
       <template #buttons>
         <el-button
-          v-if="hasPerms(['forecast:delete'])"
+          v-if="hasPerms(['forecast:batch:delete'])"
           type="danger"
           :icon="useRenderIcon(Delete)"
           :disabled="!selectedRows.length"
@@ -174,6 +181,14 @@ const handleCurrentChange = (val: number) => {
           @click="openImportDialog"
         >
           导入预报
+        </el-button>
+        <el-button
+          v-if="hasPerms(['warehouse:preorder:inbound'])"
+          type="primary"
+          :icon="useRenderIcon(Upload)"
+          @click="openImportStorageDialog"
+        >
+          批量入库
         </el-button>
       </template>
 
@@ -246,6 +261,9 @@ const handleCurrentChange = (val: number) => {
       :row="currentRow"
       @success="getList"
     />
+
+    <!-- 导入入库弹窗 -->
+    <ImportStorage v-model:visible="importStorageVisible" @success="getList" />
   </div>
 </template>
 
