@@ -27,6 +27,7 @@ import {
 } from "@/api/warehouse/inbound";
 import { useRouter } from "vue-router";
 import { http } from "@/utils/http";
+import Money from "@iconify-icons/ri/money-cny-circle-line";
 
 defineOptions({
   name: "InboundManage"
@@ -375,6 +376,7 @@ const getStatusText = status => {
               新增
             </el-button>
             <el-button
+              v-if="hasPerms('warehouse:inbound:batch')"
               type="primary"
               :icon="useRenderIcon(AddFill)"
               @click="openBatchDialog"
@@ -453,7 +455,7 @@ const getStatusText = status => {
                   link
                   type="success"
                   :size="size"
-                  :icon="useRenderIcon(Check)"
+                  :icon="useRenderIcon(Money)"
                   @click="openSettleDialog(row)"
                 >
                   结算

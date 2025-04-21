@@ -89,6 +89,7 @@ export function useHook() {
     {
       label: "状态",
       prop: "status",
+      fixed: "right",
       minWidth: 90,
       slot: "status"
     },

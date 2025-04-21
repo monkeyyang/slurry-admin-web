@@ -182,14 +182,14 @@ const handleCurrentChange = (val: number) => {
         >
           导入预报
         </el-button>
-        <el-button
+        <!-- <el-button
           v-if="hasPerms(['warehouse:preorder:inbound'])"
           type="primary"
           :icon="useRenderIcon(Upload)"
           @click="openImportStorageDialog"
         >
           批量入库
-        </el-button>
+        </el-button> -->
       </template>
 
       <pure-table
