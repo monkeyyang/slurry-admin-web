@@ -103,9 +103,20 @@ export function useHook() {
       label: "匹配状态",
       width: 120,
       cellRenderer: ({ row }) => (
-        <el-tag type={row.matched ? "success" : "info"}>
-          {row.matched ? "已匹配" : "未匹配"}
-        </el-tag>
+        <div class="flex items-center gap-2">
+          <el-tag type={row.forecast_id ? "success" : "warning"}>
+            {row.forecast_id ? "已匹配" : "未匹配"}
+          </el-tag>
+          {row.forecast_id && (
+            <el-button
+              link
+              type="primary"
+              onClick={() => handleViewDetail(row)}
+            >
+              详情
+            </el-button>
+          )}
+        </div>
       )
     },
     {
@@ -129,12 +140,20 @@ export function useHook() {
       width: 200,
       cellRenderer: ({ row }) => (
         <div class="flex items-center gap-2">
-          {row.status === "stored" ? (
+          {row.status === 1 ? (
+            <el-button
+              link
+              type="primary"
+              onClick={() => handleConfirmStockIn(row)}
+            >
+              确认入库
+            </el-button>
+          ) : row.status === 2 ? (
             <>
               <el-button link type="primary" onClick={() => handleSettle(row)}>
                 结算
               </el-button>
-              {row.matched && (
+              {row.forecast_id && (
                 <el-button
                   link
                   type="primary"
@@ -144,15 +163,10 @@ export function useHook() {
                 </el-button>
               )}
             </>
-          ) : (
-            <el-button
-              link
-              type="primary"
-              onClick={() => handleConfirmStockIn(row)}
-            >
-              确认入库
-            </el-button>
-          )}
+          ) : null}
+          <el-button link type="danger" onClick={() => handleDelete(row)}>
+            删除
+          </el-button>
         </div>
       )
     }
@@ -246,23 +260,23 @@ export function useHook() {
   };
 
   // 获取状态类型
-  const getStatusType = (status: string) => {
+  const getStatusType = (status: number) => {
     const map = {
-      pending: "warning",
-      stored: "success",
-      settled: "info"
+      1: "warning", // 待入库
+      2: "primary", // 已入库
+      3: "success" // 已结算
     };
     return map[status] || "info";
   };
 
   // 获取状态文本
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: number) => {
     const map = {
-      pending: "待入库",
-      stored: "已入库",
-      settled: "已结算"
+      1: "待入库",
+      2: "已入库",
+      3: "已结算"
     };
-    return map[status] || status;
+    return map[status] || "未知状态";
   };
 
   // 确认入库
@@ -297,12 +311,19 @@ export function useHook() {
 
   // 查看客户预报详情
   const handleViewDetail = async (row: StockItem) => {
+    if (!row.forecast_id) return;
+
     try {
-      const { data } = await getCustomerOrderDetailApi(row.id);
-      customerOrderDetail.value = data;
-      detailDialogVisible.value = true;
+      const { code, data } = await getCustomerOrderDetailApi(row.forecast_id);
+      if (code === 0 && data) {
+        customerOrderDetail.value = data;
+        detailDialogVisible.value = true;
+      } else {
+        ElMessage.error("获取预报详情失败");
+      }
     } catch (error) {
       console.error("获取详情失败", error);
+      ElMessage.error("获取预报详情失败");
     }
   };
 

@@ -11,6 +11,7 @@ export interface PageResult<T> {
 // 库存相关接口的类型定义
 export interface StockItem {
   id: string;
+  forecast_id: string;
   goodsName: string;
   trackingNo: string;
   upcOrImei?: string;

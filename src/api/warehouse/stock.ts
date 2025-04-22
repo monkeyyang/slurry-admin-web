@@ -47,3 +47,15 @@ export const getForecastDetailApi = (id: number | string) => {
 export const settleStockApi = (id: number | string) => {
   return http.request("post", `/warehouse/stock/settle/${id}`);
 };
+
+// 检查快递单号是否已存在
+export const checkTrackingNoExistsApi = (params: {
+  warehouseId: string;
+  trackingNos: string[];
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: string[]; // 返回已存在的快递单号列表
+  }>("post", "/warehouse/stock/check-exists", { data: params });
+};
