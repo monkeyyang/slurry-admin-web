@@ -61,6 +61,14 @@
             >
               导入入库
             </el-button>
+            <el-button
+              type="danger"
+              :icon="Delete"
+              :disabled="!selectedRows.length"
+              @click="handleBatchDelete"
+            >
+              批量删除
+            </el-button>
           </template>
 
           <template v-slot="{ size, dynamicColumns }">
@@ -83,7 +91,18 @@
               @selection-change="handleSelectionChange"
               @page-size-change="handleSizeChange"
               @page-current-change="handleCurrentChange"
-            />
+            >
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="handleViewDetail(row)">
+                    详情
+                  </el-button>
+                  <el-button link type="danger" @click="handleDelete(row)">
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
+            </pure-table>
           </template>
         </PureTableBar>
       </div>
@@ -162,11 +181,12 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ImportForm from "./import-form.vue";
 import StorageForm from "./storage-form.vue";
 import ForecastForm from "./forecast-form.vue";
-import { Search, Refresh, Plus } from "@element-plus/icons-vue";
+import { Search, Refresh, Plus, Delete } from "@element-plus/icons-vue";
 // 引入Excel图标
 import Document from "@iconify-icons/ep/document";
 // 引入更具体的Excel图标
 import ExcelFile from "@iconify-icons/ri/file-excel-2-line";
+import { ElMessageBox } from "element-plus";
 
 const {
   formRef,
@@ -200,7 +220,10 @@ const {
   handleMatch,
   handleStorage,
   storageDialogVisible,
-  storageDialogTitle
+  storageDialogTitle,
+  handleDelete,
+  handleBatchDelete,
+  selectedRows
 } = useHook();
 
 onMounted(() => {

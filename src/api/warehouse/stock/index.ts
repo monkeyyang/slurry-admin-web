@@ -1,11 +1,5 @@
 import { http } from "@/utils/http";
-import type {
-  StockItem,
-  ImportExcelParams,
-  BatchStockInParams,
-  CustomerOrderDetail,
-  PageResult
-} from "./types";
+import type { StockItem, CustomerOrderDetail } from "./types";
 
 // 获取库存列表
 export const getStockListApi = (params: {
@@ -70,4 +64,20 @@ export const getWarehouseListApi = () => {
     code: number;
     data: Array<{ id: string; name: string }>;
   }>("get", "/admin/warehouse/list");
+};
+
+// 删除库存
+export const deleteStockApi = (id: string | number) => {
+  return http.request<{
+    code: number;
+    message: string;
+  }>("delete", `/warehouse/stock/${id}`);
+};
+
+// 批量删除库存
+export const batchDeleteStockApi = (ids: (string | number)[]) => {
+  return http.request<{
+    code: number;
+    message: string;
+  }>("delete", "/warehouse/stock/batch", { data: { ids } });
 };

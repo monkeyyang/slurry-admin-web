@@ -5,7 +5,9 @@ import {
   getStockListApi,
   confirmStockInApi,
   settleStockApi,
-  getCustomerOrderDetailApi
+  getCustomerOrderDetailApi,
+  deleteStockApi,
+  batchDeleteStockApi
 } from "@/api/warehouse/stock/index";
 import type {
   StockItem,
@@ -62,6 +64,8 @@ export function useHook() {
   // 入库弹窗
   const storageDialogVisible = ref(false);
   const storageDialogTitle = ref("新增入库");
+
+  const selectedRows = ref([]);
 
   // 表格列定义
   const columns = [
@@ -212,8 +216,8 @@ export function useHook() {
   };
 
   // 处理表格选择变化
-  const handleSelectionChange = (selection: StockItem[]) => {
-    multipleSelection.value = selection;
+  const handleSelectionChange = rows => {
+    selectedRows.value = rows;
   };
 
   // 处理页码改变
@@ -320,6 +324,55 @@ export function useHook() {
     storageDialogVisible.value = true;
   };
 
+  // 处理单个删除
+  const handleDelete = async row => {
+    try {
+      await ElMessageBox.confirm("确认删除该记录吗？", "提示", {
+        type: "warning"
+      });
+
+      const { code, message } = await deleteStockApi(row.id);
+      if (code === 0) {
+        ElMessage.success("删除成功");
+        getList();
+      } else {
+        ElMessage.error(message || "删除失败");
+      }
+    } catch (error) {
+      console.error("删除失败", error);
+    }
+  };
+
+  // 处理批量删除
+  const handleBatchDelete = async () => {
+    if (!selectedRows.value.length) {
+      ElMessage.warning("请选择要删除的记录");
+      return;
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        `确认删除选中的 ${selectedRows.value.length} 条记录吗？`,
+        "提示",
+        {
+          type: "warning"
+        }
+      );
+
+      const ids = selectedRows.value.map(row => row.id);
+      const { code, message } = await batchDeleteStockApi(ids);
+
+      if (code === 0) {
+        ElMessage.success("删除成功");
+        getList();
+      } else {
+        ElMessage.error(message || "删除失败");
+      }
+    } catch (error) {
+      console.error("批量删除失败", error);
+    }
+  };
+
   // 初始化
   getList();
 
@@ -357,6 +410,9 @@ export function useHook() {
     handleMatch,
     storageDialogVisible,
     storageDialogTitle,
-    handleStorage
+    handleStorage,
+    selectedRows,
+    handleDelete,
+    handleBatchDelete
   };
 }
