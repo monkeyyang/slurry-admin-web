@@ -131,10 +131,8 @@ const handleFileChange = async file => {
         });
 
         if (checkExistRes.code === 0) {
-          // 确保 data 是数组
-          const existingTrackingNos = new Set(
-            Array.isArray(checkExistRes.data) ? checkExistRes.data : []
-          );
+          // 修改这里以匹配新的数据结构
+          const existingTrackingNos = new Set(checkExistRes.data?.exists || []);
 
           parsedData.forEach(item => {
             item.existsInStock = existingTrackingNos.has(item.trackingNo);
@@ -175,8 +173,8 @@ const handleFileChange = async file => {
         importData.value = parsedData;
         ElMessage.success("文件解析成功");
       } catch (error) {
-        ElMessage.error("文件解析失败");
-        console.error(error);
+        console.error("文件处理失败", error);
+        ElMessage.error("文件处理失败");
       } finally {
         loading.close();
         parsing.value = false;
@@ -191,15 +189,19 @@ const handleFileChange = async file => {
 
     reader.readAsArrayBuffer(file.raw);
   } catch (error) {
+    console.error("文件处理失败", error);
     ElMessage.error("文件处理失败");
+  } finally {
     loading.close();
     parsing.value = false;
   }
 };
 
-// 判断记录是否有效（可导入）
+// 修改判断记录是否有效的函数
 const isValidRecord = (row: ImportItem) => {
+  // 已存在于库存中的记录无效
   if (row.existsInStock) return false;
+  // 已匹配且状态为已入库或已结算的记录无效
   if (row.matchedForecast && row.status && row.status > 1) return false;
   return true;
 };
@@ -402,26 +404,26 @@ watch(
           >
             <el-table-column prop="goodsName" label="货物名称" min-width="200">
               <template #default="{ row }">
-                <span :class="{ 'text-gray-400': !isValidRecord(row) }">
+                <span :class="{ 'invalid-text': !isValidRecord(row) }">
                   {{ row.goodsName }}
                 </span>
               </template>
             </el-table-column>
             <el-table-column prop="trackingNo" label="快递单号" width="150">
               <template #default="{ row }">
-                <span :class="{ 'text-gray-400': !isValidRecord(row) }">
+                <span :class="{ 'invalid-text': !isValidRecord(row) }">
                   {{ row.trackingNo }}
                 </span>
               </template>
             </el-table-column>
             <el-table-column prop="productCode" label="UPC/IMEI" width="150">
               <template #default="{ row }">
-                <span :class="{ 'text-gray-400': !isValidRecord(row) }">
+                <span :class="{ 'invalid-text': !isValidRecord(row) }">
                   {{ row.productCode }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="230">
+            <el-table-column label="状态" width="220">
               <template #default="{ row }">
                 <div class="flex items-center gap-2">
                   <template v-if="row.existsInStock">
@@ -723,5 +725,21 @@ watch(
   margin-right: 2px;
   font-size: 14px;
   vertical-align: middle;
+}
+
+.invalid-text {
+  color: #9ca3af; /* 灰色文本 */
+}
+
+/* 为无效行添加背景色 */
+:deep(.el-table__row) {
+  &:has(.invalid-text) {
+    background-color: #f5f5f5;
+  }
+}
+
+/* 确保鼠标悬停时保持背景色 */
+:deep(.el-table__row):has(.invalid-text):hover > td {
+  background-color: #f0f0f0 !important;
 }
 </style>

@@ -105,7 +105,7 @@ export function useHook() {
       cellRenderer: ({ row }) => (
         <div class="flex items-center gap-2">
           <el-tag type={row.forecast_id ? "success" : "warning"}>
-            {row.forecast_id ? "已匹配" : "未匹配"}
+            {row.forecast_id ? "有预报" : "无预报"}
           </el-tag>
           {row.forecast_id && (
             <el-button
