@@ -36,12 +36,9 @@ export interface BatchStockInParams {
 }
 
 export interface CustomerOrderDetail {
-  id: string;
   customerName: string;
   goodsName: string;
   trackingNo: string;
-  warehouseId: string;
   warehouseName: string;
   createTime: string;
-  // 其他客户预报相关字段...
 }

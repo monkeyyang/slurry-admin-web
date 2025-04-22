@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
+import { message } from "@/utils/message";
 import { batchInboundApi } from "@/api/warehouse/inbound";
 import { ElMessage, ElUpload } from "element-plus";
 import { UploadFilled, Warning } from "@element-plus/icons-vue";

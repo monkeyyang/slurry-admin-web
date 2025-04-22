@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { UploadFilled } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import { batchStorageApi } from "@/api/warehouse/forecast";
@@ -113,30 +113,36 @@ const handleImport = async () => {
       emit("success");
       closeDialog();
     } else {
-      // 显示详细的错误信息
-      let htmlContent = `<div style="text-align: left;">
-        <div style="color: #F56C6C; margin-bottom: 10px;">批量入库失败：</div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-          <tr style="background-color: #F5F7FA;">
-            <th style="padding: 8px; border: 1px solid #EBEEF5;">订单链接</th>
-            <th style="padding: 8px; border: 1px solid #EBEEF5;">失败原因</th>
-          </tr>`;
+      // 添加安全检查，确保res.data和res.data.failed存在
+      if (res.data && Array.isArray(res.data.failed) && res.data.failed.length > 0) {
+        // 显示详细的错误信息
+        let htmlContent = `<div style="text-align: left;">
+          <div style="color: #F56C6C; margin-bottom: 10px;">批量入库失败：</div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+            <tr style="background-color: #F5F7FA;">
+              <th style="padding: 8px; border: 1px solid #EBEEF5;">订单链接</th>
+              <th style="padding: 8px; border: 1px solid #EBEEF5;">失败原因</th>
+            </tr>`;
 
-      res.data.failed.forEach((item: any) => {
-        htmlContent += `
-          <tr>
-            <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.goods_url}</td>
-            <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.reason}</td>
-          </tr>`;
-      });
+        res.data.failed.forEach((item: any) => {
+          htmlContent += `
+            <tr>
+              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.goods_url || '-'}</td>
+              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.reason || '未知错误'}</td>
+            </tr>`;
+        });
 
-      htmlContent += `</table></div>`;
+        htmlContent += `</table></div>`;
 
-      ElMessageBox.alert(htmlContent, "导入失败", {
-        dangerouslyUseHTMLString: true,
-        confirmButtonText: "确定",
-        type: "error"
-      });
+        ElMessageBox.alert(htmlContent, "导入失败", {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: "确定",
+          type: "error"
+        });
+      } else {
+        // 如果没有详细的失败信息，显示一般错误消息
+        ElMessage.error(res.message || "导入失败，请检查数据格式");
+      }
     }
   } catch (error: any) {
     ElMessage.error(error.message || "导入失败");

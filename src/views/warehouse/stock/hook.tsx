@@ -1,82 +1,74 @@
 import { reactive, ref } from "vue";
-import type { PaginationProps } from "@pureadmin/table";
-import { message } from "@/utils/message";
-import { usePublicHooks } from "@/views/system/hooks";
-import type { FormInstance } from "element-plus";
-import { ElMessageBox } from "element-plus";
+
+import { getWarehouseListApi } from "@/api/warehouse";
 import {
   getStockListApi,
-  importStockExcelApi,
-  batchStockInApi,
   confirmStockInApi,
   settleStockApi,
-  getCustomerOrderDetailApi,
-  getWarehouseListApi
+  getCustomerOrderDetailApi
 } from "@/api/warehouse/stock/index";
-import { ElMessage } from "element-plus";
 import type {
   StockItem,
   CustomerOrderDetail
 } from "@/api/warehouse/stock/types";
-
-// 定义查询参数接口，继承自BasePageQuery
-interface InboundQuery {
-  warehouseId?: string;
-  goodsName?: string;
-  trackingNo?: string;
-  status?: string;
-  startTime?: string;
-  endTime?: string;
-  pageNum?: number;
-  pageSize?: number;
-}
+import type { FormInstance } from "element-plus";
+import { ElMessageBox, ElMessage } from "element-plus";
 
 export function useHook() {
-  const formRef = ref<FormInstance>();
+  // 搜索表单
+  const searchForm = reactive({
+    warehouseId: "",
+    goodsName: "",
+    trackingNo: ""
+  });
+
+  // 加载状态
+  const loading = ref(false);
   const pageLoading = ref(false);
-  const { switchStyle } = usePublicHooks();
+
+  // 表单ref
+  const formRef = ref<FormInstance>();
+
+  // 表格ref
   const tableRef = ref();
 
+  // 数据列表
   const dataList = ref<StockItem[]>([]);
-  const multipleSelection = ref([]);
+  const multipleSelection = ref<StockItem[]>([]);
 
-  const pagination = reactive<PaginationProps>({
+  // 分页
+  const pagination = reactive({
     total: 0,
     pageSize: 10,
     currentPage: 1,
     background: true
   });
 
-  // 使用正确的接口类型
-  const searchFormParams = reactive<InboundQuery>({
-    warehouseId: "",
-    goodsName: "",
-    trackingNo: "",
-    status: "",
-    startTime: "",
-    endTime: ""
-  });
-
   // 仓库选项
-  const warehouseOptions = ref<Array<{ id: string; name: string }>>([]);
+  const warehouseOptions = ref<Array<{ value: string; label: string }>>([]);
 
-  // 导入弹层相关
+  // 弹窗相关
   const importDialogVisible = ref(false);
-  const importForm = reactive({
-    warehouseId: "",
-    file: null as File | null,
-    textContent: ""
-  });
+  const dialogVisible = ref(false);
+  const dialogTitle = ref("");
+  const currentRow = ref<StockItem | null>(null);
 
-  // 客户预报详情弹层
-  const orderDetailDialogVisible = ref(false);
-  const currentOrderDetail = ref<CustomerOrderDetail | null>(null);
+  // 添加新的状态
+  const matchDialogVisible = ref(false);
+  const matchedItems = ref<StockItem[]>([]);
+  const detailDialogVisible = ref(false);
+  const customerOrderDetail = ref<CustomerOrderDetail | null>(null);
 
-  const columns: TableColumnList = [
+  // 入库弹窗
+  const storageDialogVisible = ref(false);
+  const storageDialogTitle = ref("新增入库");
+
+  // 表格列定义
+  const columns = [
     {
       type: "selection",
-      align: "left",
-      width: 55
+      width: 55,
+      align: "left"
     },
     {
       label: "ID",
@@ -85,351 +77,286 @@ export function useHook() {
     },
     {
       label: "仓库",
-      prop: "warehouse_name",
+      prop: "warehouse.name",
       width: 120
     },
     {
-      label: "客户",
-      prop: "create_user_name",
-      width: 120,
-      cellRenderer: ({ row }) => <div>{row.create_user_name || "-"}</div>
-    },
-    {
-      label: "货品名称",
+      label: "货物名称",
       prop: "goods_name",
       minWidth: 200
     },
     {
-      label: "订单编号",
-      prop: "order_number",
-      minWidth: 150,
-      cellRenderer: ({ row }) => <div>{row.order_number || "-"}</div>
+      label: "快递单号",
+      prop: "tracking_no",
+      width: 120
     },
     {
-      label: "物流链接",
-      prop: "tracking_number",
-      minWidth: 150,
+      label: "UPC/IMEI",
+      prop: "upcOrImei",
+      width: 120
+    },
+    {
+      label: "匹配状态",
+      width: 120,
       cellRenderer: ({ row }) => (
-        <div>
-          {row.logistics_link ? (
-            <el-link
-              type="primary"
-              href={row.logistics_link}
-              target="_blank"
-              underline={false}
-            >
-              查看
-            </el-link>
-          ) : (
-            "-"
-          )}
-        </div>
+        <el-tag type={row.matched ? "success" : "info"}>
+          {row.matched ? "已匹配" : "未匹配"}
+        </el-tag>
       )
-    },
-    {
-      label: "国家",
-      prop: "country",
-      width: 100
-    },
-    {
-      label: "数量",
-      prop: "quantity",
-      width: 80
     },
     {
       label: "状态",
       prop: "status",
       width: 100,
       cellRenderer: ({ row }) => (
-        <el-tag type={row.status === 1 ? "success" : "info"} effect="plain">
-          {row.status === 1 ? "正常" : "已取消"}
+        <el-tag type={getStatusType(row.status)}>
+          {getStatusText(row.status)}
         </el-tag>
       )
-    },
-    {
-      label: "结算状态",
-      prop: "is_settled",
-      width: 100,
-      cellRenderer: ({ row }) => (
-        <el-tag type={row.is_settled === 1 ? "success" : "info"} effect="plain">
-          {row.is_settled === 1 ? "已结算" : "未结算"}
-        </el-tag>
-      )
-    },
-    {
-      label: "结算人",
-      prop: "settle_user_name",
-      width: 120
-    },
-    {
-      label: "结算时间",
-      prop: "settle_time",
-      width: 160
     },
     {
       label: "创建时间",
-      prop: "create_time",
+      prop: "createTime",
       width: 160
     },
     {
       label: "操作",
       fixed: "right",
-      width: 260,
-      slot: "operation"
+      width: 200,
+      cellRenderer: ({ row }) => (
+        <div class="flex items-center gap-2">
+          {row.status === "stored" ? (
+            <>
+              <el-button link type="primary" onClick={() => handleSettle(row)}>
+                结算
+              </el-button>
+              {row.matched && (
+                <el-button
+                  link
+                  type="primary"
+                  onClick={() => handleViewDetail(row)}
+                >
+                  查看
+                </el-button>
+              )}
+            </>
+          ) : (
+            <el-button
+              link
+              type="primary"
+              onClick={() => handleConfirmStockIn(row)}
+            >
+              确认入库
+            </el-button>
+          )}
+        </div>
+      )
     }
   ];
 
-  async function getList() {
-    pageLoading.value = true;
+  // 获取仓库列表
+  const getWarehouseOptions = async () => {
     try {
-      // 创建一个新对象，包含分页参数
-      const params: InboundQuery = { ...searchFormParams };
-      params.pageNum = pagination.currentPage;
-      params.pageSize = pagination.pageSize;
-
-      const response = await getStockListApi(params);
-
-      if (response && response.code === 0 && response.data) {
-        dataList.value = response.data.list || [];
-        pagination.total = response.data.total || 0;
+      const { code, data } = await getWarehouseListApi();
+      if (code === 0 && data?.data && Array.isArray(data.data)) {
+        warehouseOptions.value = data.data.map(item => ({
+          value: item.id,
+          label: item.name
+        }));
       } else {
-        dataList.value = [];
-        pagination.total = 0;
+        warehouseOptions.value = [];
+        console.warn("获取仓库列表数据格式异常:", data);
       }
     } catch (error) {
-      console.error("获取入库列表失败", error);
+      console.error("获取仓库列表失败", error);
+      warehouseOptions.value = [];
+    }
+  };
+
+  // 获取数据列表
+  const getList = async () => {
+    loading.value = true;
+    try {
+      const params = {
+        ...searchForm,
+        pageNum: pagination.currentPage,
+        pageSize: pagination.pageSize
+      };
+
+      const { data } = await getStockListApi(params);
+
+      if (data) {
+        dataList.value = data.data || [];
+        pagination.total = data.total || 0;
+      }
+    } catch (error) {
+      console.error("获取库存列表失败", error);
       dataList.value = [];
       pagination.total = 0;
     } finally {
-      pageLoading.value = false;
+      loading.value = false;
     }
-  }
+  };
 
-  /** 搜索 */
+  // 搜索
   const onSearch = () => {
     pagination.currentPage = 1;
     getList();
   };
 
-  /** 重置表单 */
+  // 重置
   const resetForm = (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.resetFields();
     onSearch();
   };
 
-  /** 删除入库记录 */
-  const handleDelete = async row => {
-    try {
-      await deleteInboundApi(row.id);
-      message("删除成功", { type: "success" });
-      getList();
-    } catch (error) {
-      message("删除失败", { type: "error" });
-    }
-  };
-
-  /** 处理表格选择变化 */
-  const handleSelectionChange = selection => {
-    console.log("选择变化:", selection);
+  // 处理表格选择变化
+  const handleSelectionChange = (selection: StockItem[]) => {
     multipleSelection.value = selection;
   };
 
-  /** 批量删除入库记录 */
-  const handleBatchDelete = () => {
-    console.log(
-      "当前选中项:",
-      JSON.stringify(multipleSelection.value, null, 2)
-    );
-
-    if (multipleSelection.value.length === 0) {
-      message("请至少选择一条记录", { type: "warning" });
-      return;
-    }
-
-    ElMessageBox.confirm(
-      `确认删除选中的 ${multipleSelection.value.length} 条记录吗？此操作不可逆`,
-      "警告",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      }
-    )
-      .then(async () => {
-        try {
-          pageLoading.value = true;
-          // 获取所有选中项的ID
-          const ids = multipleSelection.value.map(item => item.id);
-
-          // 使用API函数而不是直接调用http.delete
-          await batchDeleteInboundApi(ids);
-
-          message("批量删除成功", { type: "success" });
-          // 刷新列表
-          getList();
-          // 清空选择
-          if (tableRef.value && tableRef.value.getTableRef) {
-            const { clearSelection } = tableRef.value.getTableRef();
-            clearSelection();
-          }
-          multipleSelection.value = [];
-        } catch (error) {
-          if (error !== "cancel") {
-            console.error("批量删除失败", error);
-            message("批量删除失败", { type: "error" });
-          }
-        } finally {
-          pageLoading.value = false;
-        }
-      })
-      .catch(() => {
-        // 用户取消删除
-      });
+  // 处理页码改变
+  const handleCurrentChange = (page: number) => {
+    pagination.currentPage = page;
+    getList();
   };
 
-  // 获取仓库列表
-  const getWarehouseList = async () => {
-    try {
-      const { data } = await getWarehouseListApi();
-      warehouseOptions.value = data;
-    } catch (error) {
-      console.error(error);
-    }
+  // 处理每页条数改变
+  const handleSizeChange = (size: number) => {
+    pagination.pageSize = size;
+    pagination.currentPage = 1;
+    getList();
   };
 
-  // 导入Excel
-  const handleImportExcel = async (file: File) => {
-    if (!importForm.warehouseId) {
-      ElMessage.warning("请选择仓库");
-      return;
-    }
-    try {
-      const { data } = await importStockExcelApi({
-        warehouseId: importForm.warehouseId,
-        file
-      });
-      dataList.value = data;
-      ElMessage.success("导入成功");
-      importDialogVisible.value = false;
-    } catch (error) {
-      console.error(error);
-    }
+  // 处理导入
+  const handleImport = () => {
+    importDialogVisible.value = true;
   };
 
-  // 批量入库
-  const handleBatchStockIn = async () => {
-    if (!importForm.warehouseId) {
-      ElMessage.warning("请选择仓库");
-      return;
-    }
-    if (!importForm.textContent) {
-      ElMessage.warning("请输入入库信息");
-      return;
-    }
+  // 处理编辑
+  const handleEdit = (row: StockItem) => {
+    currentRow.value = row;
+    dialogTitle.value = "编辑库存";
+    dialogVisible.value = true;
+  };
 
-    const items = importForm.textContent
-      .split("\n")
-      .filter(line => line.trim())
-      .map(line => {
-        const [goodsName, trackingNo, upcOrImei] = line
-          .split(",")
-          .map(s => s.trim());
-        return { goodsName, trackingNo, upcOrImei };
-      });
+  // 获取状态类型
+  const getStatusType = (status: string) => {
+    const map = {
+      pending: "warning",
+      stored: "success",
+      settled: "info"
+    };
+    return map[status] || "info";
+  };
 
-    try {
-      const { data } = await batchStockInApi({
-        warehouseId: importForm.warehouseId,
-        items
-      });
-      dataList.value = data;
-      ElMessage.success("入库成功");
-      importDialogVisible.value = false;
-    } catch (error) {
-      console.error(error);
-    }
+  // 获取状态文本
+  const getStatusText = (status: string) => {
+    const map = {
+      pending: "待入库",
+      stored: "已入库",
+      settled: "已结算"
+    };
+    return map[status] || status;
   };
 
   // 确认入库
-  const handleConfirmStockIn = async (id: string) => {
+  const handleConfirmStockIn = async (row: StockItem) => {
     try {
-      await ElMessageBox.confirm("确认入库该商品？", "提示", {
+      await ElMessageBox.confirm("确认要入库该商品吗？", "提示", {
         type: "warning"
       });
-      await confirmStockInApi(id);
-      ElMessage.success("确认入库成功");
-      onSearch();
+
+      await confirmStockInApi(row.id);
+      ElMessage.success("入库成功");
+      getList();
     } catch (error) {
-      if (error !== "cancel") console.error(error);
+      console.error("确认入库失败", error);
     }
   };
 
   // 结算
-  const handleSettle = async (id: string) => {
+  const handleSettle = async (row: StockItem) => {
     try {
-      await ElMessageBox.confirm("确认结算该商品？", "提示", {
+      await ElMessageBox.confirm("确认要结算该商品吗？", "提示", {
         type: "warning"
       });
-      await settleStockApi(id);
+
+      await settleStockApi(row.id);
       ElMessage.success("结算成功");
-      onSearch();
+      getList();
     } catch (error) {
-      if (error !== "cancel") console.error(error);
+      console.error("结算失败", error);
     }
   };
 
   // 查看客户预报详情
-  const handleViewOrderDetail = async (id: string) => {
+  const handleViewDetail = async (row: StockItem) => {
     try {
-      const { data } = await getCustomerOrderDetailApi(id);
-      currentOrderDetail.value = data;
-      orderDetailDialogVisible.value = true;
+      const { data } = await getCustomerOrderDetailApi(row.id);
+      customerOrderDetail.value = data;
+      detailDialogVisible.value = true;
     } catch (error) {
-      console.error(error);
+      console.error("获取详情失败", error);
     }
   };
 
-  // 分页相关
-  const handleSizeChange = (val: number) => {
-    pagination.pageSize = val;
-    onSearch();
+  // 匹配预报
+  const handleMatch = async (items: StockItem[]) => {
+    try {
+      const { data } = await matchForecastApi(items);
+      matchedItems.value = data;
+      matchDialogVisible.value = true;
+    } catch (error) {
+      console.error("匹配预报失败", error);
+    }
   };
 
-  const handleCurrentChange = (val: number) => {
-    pagination.currentPage = val;
-    onSearch();
+  // 入库弹窗
+  const handleStorage = () => {
+    currentRow.value = {};
+    storageDialogTitle.value = "新增入库";
+    storageDialogVisible.value = true;
   };
 
+  // 初始化
   getList();
 
   return {
     formRef,
+    loading,
+    pageLoading,
     columns,
     dataList,
     pagination,
-    searchFormParams,
-    pageLoading,
+    searchForm,
     tableRef,
     multipleSelection,
+    warehouseOptions,
+    importDialogVisible,
+    dialogVisible,
+    dialogTitle,
+    currentRow,
     getList,
     onSearch,
     resetForm,
-    handleDelete,
-    handleBatchDelete,
     handleSelectionChange,
-    warehouseOptions,
-    importDialogVisible,
-    importForm,
-    orderDetailDialogVisible,
-    currentOrderDetail,
-    getWarehouseList,
-    handleImportExcel,
-    handleBatchStockIn,
+    handleCurrentChange,
+    handleSizeChange,
+    handleImport,
+    handleEdit,
+    getWarehouseOptions,
+    matchDialogVisible,
+    matchedItems,
+    detailDialogVisible,
+    customerOrderDetail,
     handleConfirmStockIn,
     handleSettle,
-    handleViewOrderDetail,
-    handleSizeChange,
-    handleCurrentChange
+    handleViewDetail,
+    handleMatch,
+    storageDialogVisible,
+    storageDialogTitle,
+    handleStorage
   };
 }
