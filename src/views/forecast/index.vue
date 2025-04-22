@@ -61,7 +61,8 @@ const statusMap = {
   "3": { type: "primary", label: "准备发货" },
   "4": { type: "primary", label: "货物运输" },
   "5": { type: "primary", label: "订单完成" },
-  "9": { type: "success", label: "已入库" }
+  "9": { type: "success", label: "已入库" },
+  "10": { type: "success", label: "已结算" }
 } as const;
 
 // 打开URL输入弹窗
