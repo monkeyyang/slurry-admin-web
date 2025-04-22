@@ -1,11 +1,12 @@
 import { reactive, ref } from "vue";
+import { Delete, Check, Money, InfoFilled } from "@element-plus/icons-vue";
+import { h } from "vue";
 
 import { getWarehouseListApi } from "@/api/warehouse";
 import {
   getStockListApi,
   confirmStockInApi,
   settleStockApi,
-  getCustomerOrderDetailApi,
   deleteStockApi,
   batchDeleteStockApi
 } from "@/api/warehouse/stock/index";
@@ -113,6 +114,9 @@ export function useHook() {
               type="primary"
               onClick={() => handleViewDetail(row)}
             >
+              <el-icon>
+                <InfoFilled />
+              </el-icon>
               详情
             </el-button>
           )}
@@ -140,31 +144,30 @@ export function useHook() {
       width: 200,
       cellRenderer: ({ row }) => (
         <div class="flex items-center gap-2">
-          {row.status === 1 ? (
+          {row.status === 1 && (
             <el-button
               link
               type="primary"
               onClick={() => handleConfirmStockIn(row)}
             >
+              <el-icon>
+                <Check />
+              </el-icon>
               确认入库
             </el-button>
-          ) : row.status === 2 ? (
-            <>
-              <el-button link type="primary" onClick={() => handleSettle(row)}>
-                结算
-              </el-button>
-              {row.forecast_id && (
-                <el-button
-                  link
-                  type="primary"
-                  onClick={() => handleViewDetail(row)}
-                >
-                  查看
-                </el-button>
-              )}
-            </>
-          ) : null}
+          )}
+          {row.status === 2 && (
+            <el-button link type="success" onClick={() => handleSettle(row)}>
+              <el-icon>
+                <Money />
+              </el-icon>
+              结算
+            </el-button>
+          )}
           <el-button link type="danger" onClick={() => handleDelete(row)}>
+            <el-icon>
+              <Delete />
+            </el-icon>
             删除
           </el-button>
         </div>
@@ -312,19 +315,8 @@ export function useHook() {
   // 查看客户预报详情
   const handleViewDetail = async (row: StockItem) => {
     if (!row.forecast_id) return;
-
-    try {
-      const { code, data } = await getCustomerOrderDetailApi(row.forecast_id);
-      if (code === 0 && data) {
-        customerOrderDetail.value = data;
-        detailDialogVisible.value = true;
-      } else {
-        ElMessage.error("获取预报详情失败");
-      }
-    } catch (error) {
-      console.error("获取详情失败", error);
-      ElMessage.error("获取预报详情失败");
-    }
+    detailDialogVisible.value = true;
+    currentRow.value = row;
   };
 
   // 匹配预报

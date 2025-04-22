@@ -37,9 +37,20 @@ export interface BatchStockInParams {
 }
 
 export interface CustomerOrderDetail {
-  customerName: string;
-  goodsName: string;
-  trackingNo: string;
-  warehouseName: string;
-  createTime: string;
+  id: number;
+  preorder_no: string;
+  customer_id: number;
+  customer_name: string;
+  warehouse_id: number;
+  warehouse_name: string;
+  product_name: string;
+  goods_url: string;
+  order_number: string;
+  tracking_no: string;
+  product_code: string | null;
+  quantity: number;
+  status: number;
+  status_text: string;
+  create_time: string;
+  receive_time: string;
 }

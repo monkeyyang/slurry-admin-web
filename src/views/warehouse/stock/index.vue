@@ -91,18 +91,7 @@
               @selection-change="handleSelectionChange"
               @page-size-change="handleSizeChange"
               @page-current-change="handleCurrentChange"
-            >
-              <el-table-column label="操作" width="150" fixed="right">
-                <template #default="{ row }">
-                  <el-button link type="primary" @click="handleViewDetail(row)">
-                    详情
-                  </el-button>
-                  <el-button link type="danger" @click="handleDelete(row)">
-                    删除
-                  </el-button>
-                </template>
-              </el-table-column>
-            </pure-table>
+            />
           </template>
         </PureTableBar>
       </div>
@@ -123,52 +112,11 @@
         @success="getList"
       />
 
-      <!-- 匹配结果弹层 -->
-      <el-dialog v-model="matchDialogVisible" title="匹配结果" width="800px">
-        <el-table :data="matchedItems">
-          <el-table-column label="货物名称" prop="goodsName" />
-          <el-table-column label="快递单号" prop="trackingNo" />
-          <el-table-column label="匹配状态">
-            <template #default="{ row }">
-              <el-tag :type="row.matched ? 'success' : 'info'">
-                {{ row.matched ? "已匹配" : "未匹配" }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleConfirmStockIn(row)">
-                确认入库
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-dialog>
-
-      <!-- 客户预报详情弹层 -->
-      <el-dialog
-        v-model="detailDialogVisible"
-        title="客户预报详情"
-        width="600px"
-      >
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="客户名称">
-            {{ customerOrderDetail?.customerName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="货物名称">
-            {{ customerOrderDetail?.goodsName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="快递单号">
-            {{ customerOrderDetail?.trackingNo }}
-          </el-descriptions-item>
-          <el-descriptions-item label="仓库">
-            {{ customerOrderDetail?.warehouseName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="创建时间">
-            {{ customerOrderDetail?.createTime }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </el-dialog>
+      <!-- 添加预报详情弹窗组件 -->
+      <forecast-detail
+        v-model:visible="detailDialogVisible"
+        :row="currentRow"
+      />
     </div>
   </div>
 </template>
@@ -180,13 +128,20 @@ import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ImportForm from "./import-form.vue";
 import StorageForm from "./storage-form.vue";
-import ForecastForm from "./forecast-form.vue";
-import { Search, Refresh, Plus, Delete } from "@element-plus/icons-vue";
+// 导入预报详情组件
+import ForecastDetail from "./forecast-detail.vue";
+import {
+  Search,
+  Refresh,
+  Plus,
+  Delete,
+  Check,
+  Money
+} from "@element-plus/icons-vue";
 // 引入Excel图标
 import Document from "@iconify-icons/ep/document";
 // 引入更具体的Excel图标
 import ExcelFile from "@iconify-icons/ri/file-excel-2-line";
-import { ElMessageBox } from "element-plus";
 
 const {
   formRef,
@@ -198,26 +153,20 @@ const {
   tableRef,
   warehouseOptions,
   importDialogVisible,
-  dialogVisible,
-  dialogTitle,
   currentRow,
   onSearch,
   resetForm,
   getList,
   handleSelectionChange,
   handleImport,
-  handleEdit,
   handleSizeChange,
   handleCurrentChange,
   getWarehouseOptions,
   matchDialogVisible,
   matchedItems,
   detailDialogVisible,
-  customerOrderDetail,
   handleConfirmStockIn,
   handleSettle,
-  handleViewDetail,
-  handleMatch,
   handleStorage,
   storageDialogVisible,
   storageDialogTitle,
