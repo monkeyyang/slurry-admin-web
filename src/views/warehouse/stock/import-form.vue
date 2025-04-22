@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { ElMessage, ElMessageBox, ElLoading } from "element-plus";
-import { UploadFilled } from "@element-plus/icons-vue";
+import {
+  UploadFilled,
+  View,
+  Delete,
+  InfoFilled,
+  WarningFilled,
+  CircleCheckFilled
+} from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import {
   importStockApi,
@@ -414,15 +421,22 @@ watch(
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="220">
+            <el-table-column label="状态" width="230">
               <template #default="{ row }">
                 <div class="flex items-center gap-2">
                   <template v-if="row.existsInStock">
-                    <el-tag type="danger">已存在</el-tag>
+                    <el-tag type="danger">
+                      <el-icon class="mr-1"><warning-filled /></el-icon>
+                      已存在
+                    </el-tag>
                   </template>
                   <template v-else-if="row.matchedForecast">
-                    <el-tag type="success">已匹配</el-tag>
+                    <el-tag type="success">
+                      <el-icon class="mr-1"><circle-check-filled /></el-icon>
+                      有预报
+                    </el-tag>
                     <el-tag :type="STATUS_MAP[row.status]?.type">
+                      <el-icon class="mr-1"><info-filled /></el-icon>
                       {{ STATUS_MAP[row.status]?.label }}
                     </el-tag>
                     <el-button
@@ -430,22 +444,27 @@ watch(
                       type="primary"
                       @click="handleViewDetail(row)"
                     >
+                      <el-icon><View /></el-icon>
                       详情
                     </el-button>
                   </template>
                   <template v-else>
-                    <el-tag type="warning">未匹配</el-tag>
+                    <el-tag type="warning">
+                      <el-icon class="mr-1"><warning-filled /></el-icon>
+                      无预报
+                    </el-tag>
                   </template>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column fixed="right" label="操作" width="80">
+            <el-table-column fixed="right" label="操作" width="90">
               <template #default="{ $index }">
                 <el-button
                   link
-                  type="primary"
+                  type="danger"
                   @click="importData.splice($index, 1)"
                 >
+                  <el-icon><Delete /></el-icon>
                   删除
                 </el-button>
               </template>
@@ -689,5 +708,20 @@ watch(
 
 :deep(.el-alert__icon) {
   font-size: 18px;
+}
+
+.mr-1 {
+  margin-right: 4px;
+}
+
+:deep(.el-button .el-icon) {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+:deep(.el-tag .el-icon) {
+  margin-right: 2px;
+  font-size: 14px;
+  vertical-align: middle;
 }
 </style>
