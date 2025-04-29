@@ -57,3 +57,17 @@ export const updateForecastApi = (data: {
     message: string;
   }>("put", `/warehouse/forecast/${data.id}`, { data });
 };
+
+// 批量添加到爬取队列
+export const batchAddToCrawlerQueueApi = (ids: (number | string)[]) => {
+  return http.request<any>(
+    "post",
+    "/warehouse/forecast/batch-add-to-crawler-queue",
+    {
+      data: { forecast_ids: ids },
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+};

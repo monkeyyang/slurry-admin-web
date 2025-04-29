@@ -31,7 +31,9 @@ const {
   onSearch,
   resetForm,
   handleDelete,
-  getList
+  getList,
+  handleSelectionChange,
+  viewWarehouseStock
 } = useHook();
 
 function openDialog(title: string, row?: any) {
@@ -118,8 +120,10 @@ function openDialog(title: string, row?: any) {
               background: 'var(--el-table-row-hover-bg-color)',
               color: 'var(--el-text-color-primary)'
             }"
+            row-key="id"
             @page-size-change="getList"
             @page-current-change="getList"
+            @selection-change="handleSelectionChange"
           >
             <template #empty>
               <div style="padding: 20px 0">
@@ -133,7 +137,7 @@ function openDialog(title: string, row?: any) {
                 type="primary"
                 :size="size"
                 :icon="useRenderIcon(View)"
-                @click="openDialog('查看', row)"
+                @click="viewWarehouseStock(row)"
               >
                 查看
               </el-button>

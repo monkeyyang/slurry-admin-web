@@ -8,6 +8,7 @@ import {
   getWarehouseListApi
 } from "@/api/warehouse/index";
 import { getGoodsListApi } from "@/api/warehouse/goods";
+import { Delete } from "@element-plus/icons-vue";
 
 const props = defineProps({
   visible: {
@@ -98,6 +99,9 @@ onMounted(() => {
     console.log("组件挂载且对话框可见，加载货品列表");
     getGoodsList();
   }
+
+  // 添加日志记录当前表单数据
+  console.log("表单初始数据:", formData);
 });
 
 const formData = reactive({
@@ -105,7 +109,10 @@ const formData = reactive({
   name: "",
   status: "1",
   remark: "",
-  goods_ids: []
+  goods_ids: [],
+  address: "",
+  contact: "",
+  phone: ""
 });
 
 const rules = reactive<FormRules>({
@@ -116,11 +123,33 @@ const rules = reactive<FormRules>({
 watch(
   () => props.row,
   val => {
+    console.log("接收到的原始数据:", val);
+
     if (val && Object.keys(val).length > 0) {
+      // 先复制基本字段
       Object.assign(formData, val);
-      // 如果有关联货品，设置已选择的货品ID
+
+      // 确保状态是字符串类型
+      formData.status = String(formData.status);
+
+      // 处理可能的字段名称不匹配
+      // 仓库地址 - 可能的字段名：address, warehouse_address
+      formData.address = val.address || val.warehouse_address || "";
+
+      // 联系人 - 可能的字段名：contact, contact_name, contact_person
+      formData.contact =
+        val.contact || val.contact_name || val.contact_person || "";
+
+      // 联系电话 - 可能的字段名：phone, contact_phone, phone_number
+      formData.phone = val.phone || val.contact_phone || val.phone_number || "";
+
+      console.log("处理后的表单数据:", formData);
+
+      // 正确获取货品ID
       if (val.goods && Array.isArray(val.goods)) {
-        formData.goods_ids = val.goods.map(item => item.id);
+        // 修正：使用goods_id而不是id
+        formData.goods_ids = val.goods.map(item => item.goods_id);
+        console.log("设置已关联货品IDs:", formData.goods_ids);
       } else {
         formData.goods_ids = [];
       }
@@ -131,9 +160,23 @@ watch(
       formData.status = "1";
       formData.remark = "";
       formData.goods_ids = [];
+      formData.address = "";
+      formData.contact = "";
+      formData.phone = "";
     }
   },
   { immediate: true, deep: true }
+);
+
+// 在对话框打开时记录数据
+watch(
+  () => dialogVisible.value,
+  val => {
+    if (val) {
+      console.log("对话框打开，当前表单数据:", formData);
+      console.log("当前row数据:", props.row);
+    }
+  }
 );
 
 const handleClose = () => {
@@ -151,7 +194,10 @@ const handleSubmit = async () => {
           name: formData.name,
           status: formData.status,
           remark: formData.remark,
-          goods_ids: formData.goods_ids
+          goods_ids: formData.goods_ids,
+          address: formData.address,
+          contact: formData.contact,
+          phone: formData.phone
         };
 
         if (formData.id) {
@@ -175,6 +221,13 @@ const handleSubmit = async () => {
     }
   });
 };
+
+// 添加清空可入库货品的方法
+const clearGoodsSelection = () => {
+  formData.goods_ids = [];
+  // 可选：添加提示
+  message("已清空可入库货品", { type: "info" });
+};
 </script>
 
 <template>
@@ -196,50 +249,96 @@ const handleSubmit = async () => {
         <el-input v-model="formData.name" placeholder="请输入仓库名称" />
       </el-form-item>
 
+      <el-form-item label="仓库地址" prop="address">
+        <el-input v-model="formData.address" placeholder="请输入仓库地址" />
+      </el-form-item>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="联系人" prop="contact" label-width="100px">
+            <el-input
+              v-model="formData.contact"
+              placeholder="请输入联系人姓名"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="联系电话" prop="phone" label-width="100px">
+            <el-input v-model="formData.phone" placeholder="请输入联系电话" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <el-form-item label="可入库货品" prop="goods_ids">
-        <el-select
-          v-model="formData.goods_ids"
-          multiple
-          filterable
-          placeholder="请选择可入库货品"
-          style="width: 100%"
-          :loading="goodsLoading"
-        >
-          <el-option
-            v-for="item in goodsList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id"
+        <div class="goods-selection-container">
+          <el-select
+            v-model="formData.goods_ids"
+            multiple
+            filterable
+            placeholder="请选择可入库货品"
+            style="width: 100%"
+            :loading="goodsLoading"
           >
-            <div style="display: flex; align-items: center">
-              <span>{{ item.name }}</span>
-              <div
-                v-if="item.aliases && item.aliases.length > 0"
-                style="margin-left: 8px"
-              >
-                <el-tag
-                  v-for="alias in item.aliases.slice(0, 2)"
-                  :key="alias.id"
-                  size="small"
-                  type="info"
-                  effect="plain"
-                  style="margin-left: 4px"
+            <el-option
+              v-for="item in goodsList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            >
+              <div style="display: flex; align-items: center">
+                <span>{{ item.name }}</span>
+                <div
+                  v-if="item.aliases && item.aliases.length > 0"
+                  style="margin-left: 8px"
                 >
-                  {{ alias.region }}
-                </el-tag>
-                <el-tag
-                  v-if="item.aliases.length > 2"
-                  size="small"
-                  type="info"
-                  effect="plain"
-                  style="margin-left: 4px"
-                >
-                  +{{ item.aliases.length - 2 }}
-                </el-tag>
+                  <el-tag
+                    v-for="alias in item.aliases.slice(0, 2)"
+                    :key="alias.id"
+                    size="small"
+                    type="info"
+                    effect="plain"
+                    style="margin-left: 4px"
+                  >
+                    {{ alias.region }}
+                  </el-tag>
+                  <el-tag
+                    v-if="item.aliases.length > 2"
+                    size="small"
+                    type="info"
+                    effect="plain"
+                    style="margin-left: 4px"
+                  >
+                    +{{ item.aliases.length - 2 }}
+                  </el-tag>
+                </div>
               </div>
-            </div>
-          </el-option>
-        </el-select>
+            </el-option>
+          </el-select>
+
+          <!-- 添加清除按钮 -->
+          <el-tooltip content="清空所有已选货品" placement="top">
+            <el-button
+              class="clear-goods-btn"
+              type="danger"
+              :icon="Delete"
+              link
+              :disabled="!formData.goods_ids.length || isView"
+              @click="clearGoodsSelection"
+            >
+              清空
+            </el-button>
+          </el-tooltip>
+        </div>
+
+        <!-- 修改提示信息的样式 -->
+        <div v-if="!formData.goods_ids.length" class="goods-hint">
+          <el-alert
+            title="提示：不选择货品表示该仓库不限制可入库货品类型"
+            type="info"
+            :closable="false"
+            show-icon
+          />
+        </div>
       </el-form-item>
 
       <el-form-item label="状态" prop="status">
@@ -279,5 +378,22 @@ const handleSubmit = async () => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.goods-selection-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%; /* 确保容器占满宽度 */
+}
+
+.goods-hint {
+  margin-top: 12px; /* 增加上边距 */
+  width: 100%; /* 确保提示占满宽度 */
+  display: block; /* 确保是块级元素 */
+}
+
+.clear-goods-btn {
+  flex-shrink: 0;
 }
 </style>

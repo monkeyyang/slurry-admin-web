@@ -9,6 +9,9 @@ export interface WarehouseDTO {
   create_time: string;
   update_time: string;
   deleted: number;
+  address?: string; // 新增：仓库地址
+  contact?: string; // 新增：联系人
+  phone?: string; // 新增：联系电话
   goods?: {
     warehouse_id: number;
     goods_id: number;

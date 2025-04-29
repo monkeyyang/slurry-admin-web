@@ -8,6 +8,7 @@ import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/ep/refresh";
 import AddFill from "@iconify-icons/ri/add-circle-line";
 import Upload from "@iconify-icons/ep/upload";
+import Spider from "@iconify-icons/ri/bug-line";
 import { hasPerms } from "@/utils/auth";
 import ImportExcel from "./components/ImportExcel.vue";
 import AddUrl from "./components/AddUrl.vue";
@@ -42,7 +43,8 @@ const {
   getList,
   tableRef,
   warehouseOptions,
-  getWarehouseOptions
+  getWarehouseOptions,
+  handleBatchAddToCrawlerQueue
 } = useHook();
 
 // 选中的行
@@ -55,10 +57,10 @@ const handleSelectionChange = (rows: any[]) => {
 
 // 状态映射
 const statusMap = {
-  "-3": { type: "info", label: "等待支付" },
+  "-3": { type: "warning", label: "等待支付" },
   "-2": { type: "danger", label: "系统取消" },
   "-1": { type: "danger", label: "同步失败" },
-  "0": { type: "warning", label: "待收货" },
+  "0": { type: "info", label: "待爬取" },
   "1": { type: "primary", label: "第一步" },
   "2": { type: "primary", label: "正在处理" },
   "3": { type: "primary", label: "准备发货" },
@@ -243,6 +245,14 @@ const handleUpdateSuccess = updatedData => {
 
     <PureTableBar title="货物预报管理" :columns="columns" @refresh="getList">
       <template #buttons>
+        <el-button
+          type="success"
+          :icon="useRenderIcon(Spider)"
+          :disabled="!selectedRows.length"
+          @click="handleBatchAddToCrawlerQueue(selectedRows)"
+        >
+          爬取订单
+        </el-button>
         <el-button
           v-if="hasPerms(['forecast:batch:delete'])"
           type="danger"

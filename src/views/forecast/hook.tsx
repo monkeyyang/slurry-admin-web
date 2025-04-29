@@ -9,7 +9,8 @@ import {
   getForecastListApi,
   deleteForecastApi,
   batchDeleteForecastApi,
-  updateForecastApi
+  updateForecastApi,
+  batchAddToCrawlerQueueApi
 } from "@/api/warehouse/forecast";
 
 // 定义表格列类型
@@ -26,6 +27,19 @@ interface TableColumn {
 }
 
 type TableColumnList = TableColumn[];
+
+// 定义爬取队列API响应类型
+interface CrawlerQueueResponse {
+  code: number;
+  message: string;
+  data: {
+    total: number;
+    added: number;
+    skipped: number;
+    error: number;
+    errors: any[];
+  };
+}
 
 export function useHook() {
   const tableRef = ref();
@@ -321,7 +335,10 @@ export function useHook() {
     console.log("添加预报响应:", res);
 
     if (res.code === 0) {
-      message("添加成功", { type: "success" });
+      message(
+        "添加成功，数据爬取中，请勿重复提交爬取，稍后点击列表头的刷新按钮查看爬取后的数据",
+        { type: "success", duration: 5000 }
+      );
       getList();
       return true;
     } else {
@@ -403,6 +420,82 @@ export function useHook() {
     }
   };
 
+  // 批量添加到爬取队列 - 更新处理逻辑以适配标准响应格式
+  const handleBatchAddToCrawlerQueue = async (rows: any[]) => {
+    if (!rows.length) {
+      message("请选择要爬取的数据", { type: "warning" });
+      return;
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        `确认将选中的 ${rows.length} 条数据加入爬取队列吗?`,
+        "提示",
+        {
+          confirmButtonText: "确认",
+          cancelButtonText: "取消",
+          type: "info"
+        }
+      );
+
+      const ids = rows.map(row => row.id);
+      pageLoading.value = true;
+
+      try {
+        console.log("发送爬取请求，参数:", { forecast_ids: ids });
+
+        // 使用类型断言处理响应 - 适配标准响应格式
+        const response = (await batchAddToCrawlerQueueApi(
+          ids
+        )) as CrawlerQueueResponse;
+        console.log("爬取请求原始响应:", response);
+
+        // 使用code === 0判断成功
+        if (response && response.code === 0) {
+          let successMsg = "成功加入爬取队列";
+
+          // 直接从响应中获取数据
+          const { total, added, skipped, error } = response.data;
+          successMsg += `，共${total}条，成功${added}条`;
+
+          if (skipped > 0) {
+            successMsg += `，跳过${skipped}条`;
+          }
+
+          if (error > 0) {
+            successMsg += `，失败${error}条`;
+          }
+
+          successMsg += "。请稍后点击列表头部刷新按钮查看数据";
+          message(successMsg, { type: "success" });
+        } else {
+          message(response?.message || "加入爬取队列失败", { type: "error" });
+        }
+      } catch (error) {
+        console.error("加入爬取队列请求失败", error);
+
+        // 提供具体错误信息
+        let errorMsg = "加入爬取队列失败";
+        if (error.response) {
+          errorMsg += `：服务器返回 ${error.response.status} 错误`;
+        } else if (error.request) {
+          errorMsg += "：未收到服务器响应";
+        } else if (error.message) {
+          errorMsg += `：${error.message}`;
+        }
+
+        message(errorMsg, { type: "error" });
+      } finally {
+        pageLoading.value = false;
+      }
+    } catch (error) {
+      // 处理用户取消确认的情况
+      if (error !== "cancel") {
+        console.error("爬取队列操作失败", error);
+      }
+    }
+  };
+
   return {
     tableRef,
     pageLoading,
@@ -420,6 +513,7 @@ export function useHook() {
     importForecast,
     scanInbound,
     updateForecast,
-    handleBatchDelete
+    handleBatchDelete,
+    handleBatchAddToCrawlerQueue
   };
 }

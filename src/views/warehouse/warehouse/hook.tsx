@@ -14,7 +14,8 @@ import { getGoodsListApi } from "@/api/warehouse/goods";
 import { usePublicHooks } from "@/views/system/hooks";
 import type { FormInstance } from "element-plus";
 import { ElMessageBox } from "element-plus";
-import { ArrowDown, ArrowUp } from "@element-plus/icons-vue";
+import { ArrowDown, ArrowUp, InfoFilled } from "@element-plus/icons-vue";
+import { useRouter } from "vue-router";
 
 // 定义一个展开/收起组件
 const ExpandableGoodsList = defineComponent({
@@ -33,7 +34,11 @@ const ExpandableGoodsList = defineComponent({
 
     return () => {
       if (!props.goods || props.goods.length === 0) {
-        return h("span", { class: "text-gray-400" }, "暂无关联货品");
+        return h(
+          "span",
+          { class: "text-gray-400" },
+          "暂无关联货品，可入库任何货物"
+        );
       }
 
       // 默认显示的货品数量
@@ -151,6 +156,7 @@ export function useHook() {
   const pageLoading = ref(false);
   const goodsLoading = ref(false);
   const { switchStyle } = usePublicHooks();
+  const router = useRouter();
 
   const formData = reactive<Partial<WarehouseDTO> & { goods_ids: number[] }>({
     id: undefined,
@@ -177,6 +183,8 @@ export function useHook() {
     pageSize: 10
   });
 
+  const selectedRows = ref([]);
+
   // 国家/地区代码颜色映射
   const regionColors = {
     US: { color: "#409EFF", bg: "#ecf5ff" }, // 美国 - 蓝色
@@ -191,9 +199,30 @@ export function useHook() {
 
   const columns: TableColumnList = [
     {
+      type: "selection",
+      fixed: "left",
+      reserveSelection: true,
+      width: 60
+    },
+    {
       label: "仓库名称",
       prop: "name",
-      minWidth: 130
+      minWidth: 160
+    },
+    {
+      label: "仓库地址",
+      prop: "address",
+      minWidth: 160
+    },
+    {
+      label: "联系人",
+      prop: "contact",
+      width: 100
+    },
+    {
+      label: "联系电话",
+      prop: "phone",
+      width: 120
     },
     {
       label: "可入库货品",
@@ -217,22 +246,37 @@ export function useHook() {
       )
     },
     {
-      label: "入库总量",
-      prop: "total_inbound_count",
-      width: 100,
-      cellRenderer: ({ row }) => <div>{row.total_inbound_count || 0}</div>
-    },
-    {
-      label: "已结算数量",
-      prop: "settled_count",
-      width: 100,
-      cellRenderer: ({ row }) => <div>{row.settled_count || 0}</div>
-    },
-    {
-      label: "未结算数量",
-      prop: "unsettled_count",
-      width: 100,
-      cellRenderer: ({ row }) => <div>{row.unsettled_count || 0}</div>
+      label: "入库/结算/未结算",
+      prop: "statistics",
+      width: 150,
+      fixed: "right",
+      headerRenderer: () => (
+        <el-tooltip
+          content="蓝色：入库总量 | 绿色：已结算数量 | 黄色：未结算数量"
+          placement="top"
+          effect="light"
+        >
+          <div>
+            入库/结算/未结算{" "}
+            <el-icon>
+              <InfoFilled />
+            </el-icon>
+          </div>
+        </el-tooltip>
+      ),
+      cellRenderer: ({ row }) => (
+        <div style="display: flex; gap: 4px; justify-content: center;">
+          <el-tag type="primary" size="small">
+            {row.total_inbound_count || 0}
+          </el-tag>
+          <el-tag type="success" size="small">
+            {row.settled_count || 0}
+          </el-tag>
+          <el-tag type="warning" size="small">
+            {row.unsettled_count || 0}
+          </el-tag>
+        </div>
+      )
     },
     {
       label: "备注",
@@ -244,7 +288,6 @@ export function useHook() {
       prop: "create_time",
       minWidth: 180
     },
-
     {
       label: "操作",
       fixed: "right",
@@ -425,6 +468,21 @@ export function useHook() {
     formData.goods_ids = row.goods ? row.goods.map(item => item.goods_id) : [];
   };
 
+  const handleSelectionChange = selection => {
+    selectedRows.value = selection;
+  };
+
+  const viewWarehouseStock = row => {
+    // 使用路由导航到库存管理页面，并带上仓库ID参数
+    router.push({
+      path: "/warehouse/stock/index",
+      query: {
+        warehouse_id: row.id,
+        warehouse_name: row.name
+      }
+    });
+  };
+
   getList();
   getGoodsList();
 
@@ -447,6 +505,9 @@ export function useHook() {
     handleAdd,
     handleUpdate,
     resetFormData,
-    handleEdit
+    handleEdit,
+    selectedRows,
+    handleSelectionChange,
+    viewWarehouseStock
   };
 }

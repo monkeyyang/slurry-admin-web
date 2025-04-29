@@ -122,7 +122,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useHook } from "@/views/warehouse/stock/hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -143,6 +144,7 @@ import Document from "@iconify-icons/ep/document";
 // 引入更具体的Excel图标
 import ExcelFile from "@iconify-icons/ri/file-excel-2-line";
 
+const route = useRoute();
 const {
   formRef,
   searchForm,
@@ -175,9 +177,16 @@ const {
   selectedRows
 } = useHook();
 
+// 监听路由参数变化
 onMounted(() => {
   getWarehouseOptions();
   getList();
+  // 如果URL中有仓库ID参数，自动设置搜索条件并触发搜索
+  if (route.query.warehouse_id) {
+    searchForm.warehouse_id = route.query.warehouse_id;
+    searchForm.warehouse_name = route.query.warehouse_name;
+    getList();
+  }
 });
 </script>
 
