@@ -1,5 +1,7 @@
 import { http } from "@/utils/http";
 
+export * from "./forecast/index";
+
 export const addForecastApi = (data: any) => {
   console.log("data", data);
   return http.request("post", "/forecast/add", { data });
@@ -43,4 +45,15 @@ export const batchStorageApi = (data: {
       "Content-Type": "application/json"
     }
   });
+};
+
+export const updateForecastApi = (data: {
+  id: string | number;
+  product_name: string;
+  warehouse_id: string | number;
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+  }>("put", `/warehouse/forecast/${data.id}`, { data });
 };

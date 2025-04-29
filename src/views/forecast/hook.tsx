@@ -8,7 +8,8 @@ import {
   importForecastApi,
   getForecastListApi,
   deleteForecastApi,
-  batchDeleteForecastApi
+  batchDeleteForecastApi,
+  updateForecastApi
 } from "@/api/warehouse/forecast";
 
 // 定义表格列类型
@@ -160,28 +161,50 @@ export function useHook() {
           label: item.name,
           value: item.id
         }));
+
+        console.log("格式化后的仓库选项:", warehouseOptions.value);
       } else {
         console.warn("仓库API返回数据格式不符合预期", response);
-        warehouseOptions.value = []; // 确保设置为空数组
+        warehouseOptions.value = [];
       }
     } catch (error) {
       console.error("获取仓库列表失败", error);
-      warehouseOptions.value = []; // 确保设置为空数组
+      warehouseOptions.value = [];
     }
   };
 
+  // 添加一个请求锁，防止重复请求
+  let requestLock = false;
+
   // 获取预报列表
   const getList = async () => {
+    // 如果已经有请求在进行中，直接返回
+    if (requestLock) {
+      console.log("上一个请求尚未完成，跳过本次请求");
+      return;
+    }
+
     try {
+      requestLock = true;
       pageLoading.value = true;
+
+      // 记录请求开始时间用于调试
+      const startTime = Date.now();
+      console.log("开始获取预报列表");
+
       const res = await getForecastListApi(searchFormParams);
+
+      // 记录请求完成时间
+      const endTime = Date.now();
+      console.log(`请求完成，耗时 ${endTime - startTime}ms`);
+
       if (res.code === 0 && res.data) {
-        // 更新数据列表
-        dataList.value = res.data.data.map(item => ({
+        const newData = res.data.data.map(item => ({
           id: item.id,
           preorderNo: item.preorder_no,
           customerName: item.customer_name,
           warehouseName: item.warehouse_name,
+          warehouseId: item.warehouse_id,
           productName: item.product_name,
           goodsUrl: item.goods_url,
           orderNumber: item.order_number,
@@ -192,14 +215,26 @@ export function useHook() {
           createTime: item.create_time,
           receiveTime: item.receive_time
         }));
-        // 更新分页信息
-        pagination.total = res.data.total;
-        pagination.currentPage = res.data.current_page;
+
+        // 检查是否有数据变化
+        const dataChanged =
+          JSON.stringify(newData) !== JSON.stringify(dataList.value);
+        console.log("数据是否有变化:", dataChanged);
+
+        if (dataChanged) {
+          // 使用新数据更新列表
+          dataList.value = newData;
+
+          // 更新分页信息
+          pagination.total = res.data.total;
+          pagination.currentPage = res.data.current_page;
+        }
       }
     } catch (error) {
       console.error("获取预报列表失败", error);
     } finally {
       pageLoading.value = false;
+      requestLock = false;
     }
   };
 
@@ -222,14 +257,18 @@ export function useHook() {
   };
 
   // 修改预报
-  const updateForecast = async (data: any) => {
+  const updateForecast = async (data: {
+    id: string | number;
+    product_name: string;
+    warehouse_id: string | number;
+  }) => {
     try {
-      // TODO: 调用修改API
-      // await updateForecastApi(data);
+      await updateForecastApi(data);
       message("修改成功", { type: "success" });
       getList();
       return true;
     } catch (error) {
+      console.error("修改预报失败", error);
       message("修改失败", { type: "error" });
       return false;
     }
@@ -237,6 +276,12 @@ export function useHook() {
 
   // 删除预报
   const handleDelete = async (row: any) => {
+    // 检查状态，已入库状态不允许删除
+    if (parseInt(row.status) >= 9) {
+      message("已入库状态的预报不可删除", { type: "error" });
+      return;
+    }
+
     await ElMessageBox.confirm(
       `确认要删除预报编号为 ${row.preorderNo} 的数据吗?`,
       "警告",
@@ -247,7 +292,6 @@ export function useHook() {
       }
     );
     try {
-      // TODO: 调用删除API
       await deleteForecastApi(row.id);
       message("删除成功", { type: "success" });
       getList();
@@ -330,6 +374,13 @@ export function useHook() {
   const handleBatchDelete = async (rows: any[]) => {
     if (!rows.length) {
       message("请选择要删除的数据", { type: "warning" });
+      return;
+    }
+
+    // 检查是否有已入库状态的预报
+    const hasStoredItems = rows.some(row => parseInt(row.status) >= 9);
+    if (hasStoredItems) {
+      message("选中的数据中包含已入库状态的预报，不可删除", { type: "error" });
       return;
     }
 
