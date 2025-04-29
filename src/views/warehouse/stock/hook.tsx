@@ -196,26 +196,47 @@ export function useHook() {
 
   // 获取数据列表
   const getList = async () => {
-    loading.value = true;
+    if (pageLoading.value) return; // 防止重复请求
+
+    pageLoading.value = true;
+
     try {
+      // 构建查询参数 - 包含所有搜索条件
       const params = {
-        ...searchForm,
-        pageNum: pagination.currentPage,
-        pageSize: pagination.pageSize
+        page: pagination.currentPage,
+        pageSize: pagination.pageSize,
+        // 使用搜索表单中的所有字段
+        warehouseId: searchForm.warehouseId,
+        goodsName: searchForm.goodsName,
+        trackingNo: searchForm.trackingNo
+        // 如果有其他搜索条件也添加在这里
       };
 
-      const { data } = await getStockListApi(params);
+      console.log("发送搜索参数:", params); // 调试日志
 
-      if (data) {
-        dataList.value = data.data || [];
-        pagination.total = data.total || 0;
+      // 清理undefined/null/空字符串值
+      Object.keys(params).forEach(key => {
+        if (
+          params[key] === undefined ||
+          params[key] === null ||
+          params[key] === ""
+        ) {
+          delete params[key];
+        }
+      });
+
+      const response = await getStockListApi(params);
+
+      if (response.data) {
+        dataList.value = response.data.data || [];
+        pagination.total = response.data.total || 0;
       }
     } catch (error) {
       console.error("获取库存列表失败", error);
       dataList.value = [];
       pagination.total = 0;
     } finally {
-      loading.value = false;
+      pageLoading.value = false;
     }
   };
 

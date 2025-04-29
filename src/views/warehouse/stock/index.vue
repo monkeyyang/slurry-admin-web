@@ -177,17 +177,32 @@ const {
   selectedRows
 } = useHook();
 
-// 监听路由参数变化
 onMounted(() => {
+  // 1. 先获取仓库选项
   getWarehouseOptions();
-  getList();
-  // 如果URL中有仓库ID参数，自动设置搜索条件并触发搜索
+
+  // 2. 设置搜索条件(如果URL中有仓库ID参数)
   if (route.query.warehouse_id) {
-    searchForm.warehouse_id = route.query.warehouse_id;
-    searchForm.warehouse_name = route.query.warehouse_name;
-    getList();
+    searchForm.warehouseId = String(route.query.warehouse_id); // Convert to string
+    console.log("从URL设置仓库ID:", route.query.warehouse_id);
   }
+
+  // 3. 只调用一次getList获取数据
+  getList();
 });
+
+// 监听路由变化以支持从其他页面跳转
+watch(
+  () => route.query,
+  query => {
+    if (query.warehouse_id) {
+      console.log("路由变化 - 设置仓库ID:", query.warehouse_id);
+      searchForm.warehouseId = String(query.warehouse_id); // Convert to string
+      getList();
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped lang="scss">
