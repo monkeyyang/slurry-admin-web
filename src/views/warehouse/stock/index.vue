@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from "vue";
+import { onMounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useHook } from "@/views/warehouse/stock/hook";
 import { PureTableBar } from "@/components/RePureTableBar";
@@ -177,18 +177,25 @@ const {
   selectedRows
 } = useHook();
 
-onMounted(() => {
-  // 1. 先获取仓库选项
-  getWarehouseOptions();
+onMounted(async () => {
+  // First get warehouse options
+  await getWarehouseOptions();
 
-  // 2. 设置搜索条件(如果URL中有仓库ID参数)
+  // Check for URL parameters and set them directly before making the request
   if (route.query.warehouse_id) {
-    searchForm.warehouseId = String(route.query.warehouse_id); // Convert to string
-    console.log("从URL设置仓库ID:", route.query.warehouse_id);
-  }
+    // Set the value directly
+    searchForm.warehouseId = route.query.warehouse_id as string;
+    console.log("Set warehouse ID from URL:", searchForm.warehouseId);
 
-  // 3. 只调用一次getList获取数据
-  getList();
+    // Wait for the next DOM update cycle before making the request
+    await nextTick();
+
+    // Now get the list with the correctly set parameter
+    getList();
+  } else {
+    // No warehouse ID in URL, just get all data
+    getList();
+  }
 });
 
 // 监听路由变化以支持从其他页面跳转

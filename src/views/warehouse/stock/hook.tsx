@@ -22,7 +22,8 @@ export function useHook() {
   const searchForm = reactive({
     warehouseId: "",
     goodsName: "",
-    trackingNo: ""
+    trackingNo: "",
+    status: ""
   });
 
   // 加载状态
@@ -201,20 +202,23 @@ export function useHook() {
     pageLoading.value = true;
 
     try {
-      // 构建查询参数 - 包含所有搜索条件
+      // 明确地构建参数对象，确保searchForm中的字段被正确传递
       const params = {
         page: pagination.currentPage,
         pageSize: pagination.pageSize,
-        // 使用搜索表单中的所有字段
+
+        // 直接从searchForm获取值，不使用展开操作符
         warehouseId: searchForm.warehouseId,
         goodsName: searchForm.goodsName,
-        trackingNo: searchForm.trackingNo
-        // 如果有其他搜索条件也添加在这里
+        trackingNo: searchForm.trackingNo,
+        status: searchForm.status
       };
 
-      console.log("发送搜索参数:", params); // 调试日志
+      // 调试输出
+      console.log("Search form:", searchForm);
+      console.log("Request params:", params);
 
-      // 清理undefined/null/空字符串值
+      // 清理undefine/null/空字符串值
       Object.keys(params).forEach(key => {
         if (
           params[key] === undefined ||

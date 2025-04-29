@@ -3,21 +3,23 @@ import type { StockItem, CustomerOrderDetail } from "./types";
 
 // 获取库存列表
 export function getStockListApi(params: any) {
-  // 如果后端API期望下划线格式，可以在这里转换参数名
+  console.log("Original params:", params); // Debug log
+
+  // Create API params object
   const apiParams = {
-    ...params,
-    // 将驼峰转换为下划线格式
+    // Include pagination params directly
+    page: params.page,
+    pageSize: params.pageSize,
+
+    // Convert camelCase to snake_case
     warehouse_id: params.warehouseId,
     goods_name: params.goodsName,
     tracking_no: params.trackingNo
   };
 
-  // 删除原始驼峰命名的参数
-  delete apiParams.warehouseId;
-  delete apiParams.goodsName;
-  delete apiParams.trackingNo;
+  console.log("API params:", apiParams); // Debug log
 
-  // 使用转换后的参数调用API
+  // Use the converted params
   return http.request<any>("get", "/warehouse/stock/list", {
     params: apiParams
   });
