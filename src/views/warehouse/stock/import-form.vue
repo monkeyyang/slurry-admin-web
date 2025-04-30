@@ -72,7 +72,7 @@ const STATUS_MAP = {
   10: { label: "已结算", type: "success" }
 };
 
-// 修改文件处理函数
+// 文件处理函数
 const handleFileChange = async file => {
   if (!file) return;
 
@@ -120,9 +120,7 @@ const handleFileChange = async file => {
 
           const checkRes = checkExistRes as { code: number; data?: any };
           if (checkRes.code === 0) {
-            // 修改这里以匹配新的数据结构
             const existingTrackingNos = new Set(checkRes.data?.exists || []);
-
             parsedData.forEach(item => {
               item.existsInStock = existingTrackingNos.has(item.trackingNo);
             });
@@ -164,8 +162,6 @@ const handleFileChange = async file => {
           ElMessage.success("文件解析成功");
         } else {
           ElMessage.error("文件读取失败，格式不正确");
-          loading.close();
-          parsing.value = false;
           return;
         }
       } catch (error) {
@@ -187,7 +183,6 @@ const handleFileChange = async file => {
   } catch (error) {
     console.error("文件处理失败", error);
     ElMessage.error("文件处理失败");
-  } finally {
     loading.close();
     parsing.value = false;
   }
