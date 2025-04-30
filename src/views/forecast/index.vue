@@ -17,6 +17,20 @@ import ImportStorage from "./components/ImportStorage.vue";
 import EditForm from "./components/EditForm.vue";
 import { ElMessage } from "element-plus";
 
+const statusMap = {
+  "-3": { type: "warning", label: "等待支付" },
+  "-2": { type: "danger", label: "系统取消" },
+  "-1": { type: "danger", label: "同步失败" },
+  "0": { type: "info", label: "待爬取" },
+  "1": { type: "primary", label: "第一步" },
+  "2": { type: "primary", label: "正在处理" },
+  "3": { type: "primary", label: "准备发货" },
+  "4": { type: "primary", label: "货物运输" },
+  "5": { type: "primary", label: "订单完成" },
+  "9": { type: "success", label: "已入库" },
+  "10": { type: "success", label: "已结算" }
+} as const;
+
 defineOptions({
   name: "PreorderManage"
 });
@@ -54,21 +68,6 @@ const selectedRows = ref<any[]>([]);
 const handleSelectionChange = (rows: any[]) => {
   selectedRows.value = rows;
 };
-
-// 状态映射
-const statusMap = {
-  "-3": { type: "warning", label: "等待支付" },
-  "-2": { type: "danger", label: "系统取消" },
-  "-1": { type: "danger", label: "同步失败" },
-  "0": { type: "info", label: "待爬取" },
-  "1": { type: "primary", label: "第一步" },
-  "2": { type: "primary", label: "正在处理" },
-  "3": { type: "primary", label: "准备发货" },
-  "4": { type: "primary", label: "货物运输" },
-  "5": { type: "primary", label: "订单完成" },
-  "9": { type: "success", label: "已入库" },
-  "10": { type: "success", label: "已结算" }
-} as const;
 
 // 添加按钮加载状态变量
 const editBtnLoading = ref<Record<string | number, boolean>>({});
@@ -243,7 +242,11 @@ const handleUpdateSuccess = updatedData => {
       </el-form-item>
     </el-form>
 
-    <PureTableBar title="货物预报管理" :columns="columns" @refresh="getList">
+    <PureTableBar
+      title="货物预报管理"
+      :columns="columns as any"
+      @refresh="getList"
+    >
       <template #buttons>
         <el-button
           type="success"

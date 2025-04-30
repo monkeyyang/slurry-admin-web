@@ -117,7 +117,7 @@
 import { ref, reactive, computed, watch, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
-import { updateForecastApi } from "@/api/warehouse/forecast/index";
+import { updateForecastApi } from "@/api/warehouse/forecast";
 import { getWarehouseListApi } from "@/api/warehouse";
 import { Loading } from "@element-plus/icons-vue";
 

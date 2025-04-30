@@ -41,6 +41,13 @@ interface CrawlerQueueResponse {
   };
 }
 
+// Define the response type
+interface ApiResponse {
+  code: number;
+  data?: any;
+  message?: string;
+}
+
 export function useHook() {
   const tableRef = ref();
   const pageLoading = ref(false);
@@ -212,8 +219,10 @@ export function useHook() {
       const endTime = Date.now();
       console.log(`请求完成，耗时 ${endTime - startTime}ms`);
 
-      if (res.code === 0 && res.data) {
-        const newData = res.data.data.map(item => ({
+      // Cast once and reuse
+      const response = res as ApiResponse;
+      if (response.code === 0 && response.data) {
+        const newData = response.data.data.map(item => ({
           id: item.id,
           preorderNo: item.preorder_no,
           customerName: item.customer_name,
@@ -240,8 +249,8 @@ export function useHook() {
           dataList.value = newData;
 
           // 更新分页信息
-          pagination.total = res.data.total;
-          pagination.currentPage = res.data.current_page;
+          pagination.total = response.data.total;
+          pagination.currentPage = response.data.current_page;
         }
       }
     } catch (error) {
@@ -253,14 +262,14 @@ export function useHook() {
   };
 
   // 扫码入库
-  const scanInbound = async (data: {
+  const scanInbound = async (_data: {
     id: number;
     trackingNo: string;
     productCode: string;
   }) => {
     try {
       // TODO: 调用扫码入库API
-      // await scanInboundApi(data);
+      // await scanInboundApi(_data);
       message("入库成功", { type: "success" });
       getList();
       return true;
@@ -334,7 +343,8 @@ export function useHook() {
     const res = await addForecastApi(params);
     console.log("添加预报响应:", res);
 
-    if (res.code === 0) {
+    const response = res as ApiResponse;
+    if (response.code === 0) {
       message(
         "添加成功，数据爬取中，请勿重复提交爬取，稍后点击列表头的刷新按钮查看爬取后的数据",
         { type: "success", duration: 5000 }
@@ -351,7 +361,7 @@ export function useHook() {
             <th style="padding: 8px; border: 1px solid #EBEEF5; text-align: left;">失败原因</th>
           </tr>`;
 
-      res.data.failed.forEach(item => {
+      response.data.failed.forEach(item => {
         htmlContent += `
           <tr>
             <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.url}</td>
@@ -378,7 +388,8 @@ export function useHook() {
     formData.append("warehouseId", warehouseId.toString());
 
     const res = await importForecastApi(formData);
-    if (res.code === 0) {
+    const response = res as ApiResponse;
+    if (response.code === 0) {
       message("导入成功", { type: "success" });
       return true;
     } else {
@@ -412,11 +423,12 @@ export function useHook() {
     );
 
     const res = await batchDeleteForecastApi(rows.map(row => row.id));
-    if (res.code === 0) {
+    const response = res as ApiResponse;
+    if (response.code === 0) {
       message("删除成功", { type: "success" });
       getList();
     } else {
-      message(res.message || "删除失败", { type: "error" });
+      message(response.message || "删除失败", { type: "error" });
     }
   };
 

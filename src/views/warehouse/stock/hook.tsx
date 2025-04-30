@@ -1,7 +1,6 @@
 import { reactive, ref } from "vue";
 import { Delete, Check, Money, InfoFilled } from "@element-plus/icons-vue";
-import { h } from "vue";
-
+import { matchForecastApi } from "@/api/warehouse/stock";
 import { getWarehouseListApi } from "@/api/warehouse";
 import {
   getStockListApi,
@@ -179,7 +178,8 @@ export function useHook() {
   // 获取仓库列表
   const getWarehouseOptions = async () => {
     try {
-      const { code, data } = await getWarehouseListApi();
+      const res = await getWarehouseListApi();
+      const { code, data } = res as { code: number; data?: any };
       if (code === 0 && data?.data && Array.isArray(data.data)) {
         warehouseOptions.value = data.data.map(item => ({
           value: item.id,
@@ -219,17 +219,23 @@ export function useHook() {
       console.log("Request params:", params);
 
       // 清理undefine/null/空字符串值
-      Object.keys(params).forEach(key => {
-        if (
-          params[key] === undefined ||
-          params[key] === null ||
-          params[key] === ""
-        ) {
-          delete params[key];
-        }
-      });
+      // Object.keys(params).forEach(key => {
+      //   if (
+      //     params[key] === undefined ||
+      //     params[key] === null ||
+      //     params[key] === ""
+      //   ) {
+      //     delete params[key];
+      //   }
+      // });
+      //   undefine/null/空字符串值
+      const filteredParams = Object.fromEntries(
+        Object.entries(params).filter(
+          ([_, value]) => value !== undefined && value !== null && value !== ""
+        )
+      );
 
-      const response = await getStockListApi(params);
+      const response = await getStockListApi(filteredParams);
 
       if (response.data) {
         dataList.value = response.data.data || [];
@@ -347,9 +353,17 @@ export function useHook() {
   // 匹配预报
   const handleMatch = async (items: StockItem[]) => {
     try {
-      const { data } = await matchForecastApi(items);
-      matchedItems.value = data;
-      matchDialogVisible.value = true;
+      const res = await matchForecastApi({
+        warehouseId: searchForm.warehouseId,
+        items: items.map(item => ({ trackingNo: item.trackingNo }))
+      });
+      const { code, data } = res as { code: number; data?: any };
+      if (code === 0) {
+        matchedItems.value = data;
+        matchDialogVisible.value = true;
+      } else {
+        ElMessage.error(data?.message || "匹配预报失败");
+      }
     } catch (error) {
       console.error("匹配预报失败", error);
     }
@@ -357,7 +371,18 @@ export function useHook() {
 
   // 入库弹窗
   const handleStorage = () => {
-    currentRow.value = {};
+    currentRow.value = {
+      id: "",
+      forecast_id: "",
+      goodsName: "",
+      trackingNo: "",
+      upcOrImei: "",
+      warehouseId: "",
+      warehouseName: "",
+      matched: false,
+      status: "pending",
+      createTime: ""
+    };
     storageDialogTitle.value = "新增入库";
     storageDialogVisible.value = true;
   };

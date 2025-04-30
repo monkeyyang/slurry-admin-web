@@ -1,6 +1,6 @@
 import { http } from "@/utils/http";
 
-export * from "./forecast/index";
+// export * from "./forecast/index";
 
 export const addForecastApi = (data: any) => {
   console.log("data", data);

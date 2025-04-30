@@ -16,17 +16,6 @@ import {
   checkTrackingNoExistsApi
 } from "@/api/warehouse/stock";
 
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false
-  },
-  warehouseOptions: {
-    type: Array,
-    default: () => []
-  }
-});
-
 const emit = defineEmits(["update:visible", "success"]);
 
 const dialogVisible = ref(false);
@@ -51,22 +40,15 @@ const importData = ref<ImportItem[]>([]);
 // 添加解析状态
 const parsing = ref(false);
 
-interface ForecastDetail {
-  tracking_no: string;
-  matched: boolean;
-  forecast_id?: number;
-  preorder_no?: string;
-  customer_name?: string;
-  product_name?: string;
-  goods_url?: string;
-  order_number?: string;
-  product_code?: string;
-  quantity?: number;
-  create_time?: string;
-  status?: number;
-  stock_in_time?: string;
-  settle_time?: string;
+interface WarehouseOption {
+  value: string | number;
+  label: string;
 }
+
+const props = defineProps({
+  visible: Boolean,
+  warehouseOptions: Array as () => WarehouseOption[]
+});
 
 // 添加详情弹窗状态和数据
 const detailDialogVisible = ref(false);
@@ -111,67 +93,81 @@ const handleFileChange = async file => {
     const reader = new FileReader();
     reader.onload = async e => {
       try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+        if (e.target.result instanceof ArrayBuffer) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-        // 确保所有字段都转换为字符串
-        const parsedData = jsonData.map(row => ({
-          goodsName: String(row["货物名称"] || ""),
-          trackingNo: String(row["快递单号"] || ""),
-          productCode: row["UPC/IMEI"] ? String(row["UPC/IMEI"]) : undefined,
-          matchedForecast: false
-        }));
+          // 确保所有字段都转换为字符串
+          const parsedData = jsonData.map(row => ({
+            goodsName: String(row["货物名称"] || ""),
+            trackingNo: String(row["快递单号"] || ""),
+            productCode: row["UPC/IMEI"] ? String(row["UPC/IMEI"]) : undefined,
+            matchedForecast: false,
+            existsInStock: false,
+            forecastDetail: null,
+            status: null,
+            stockInTime: null,
+            settleTime: null
+          }));
 
-        // 检查快递单号是否已存在于库存中
-        const checkExistRes = await checkTrackingNoExistsApi({
-          warehouseId: warehouseId.value,
-          trackingNos: parsedData.map(item => item.trackingNo)
-        });
-
-        if (checkExistRes.code === 0) {
-          // 修改这里以匹配新的数据结构
-          const existingTrackingNos = new Set(checkExistRes.data?.exists || []);
-
-          parsedData.forEach(item => {
-            item.existsInStock = existingTrackingNos.has(item.trackingNo);
+          // 检查快递单号是否已存在于库存中
+          const checkExistRes = await checkTrackingNoExistsApi({
+            warehouseId: warehouseId.value,
+            trackingNos: parsedData.map(item => item.trackingNo)
           });
-        }
 
-        // 如果选择了仓库，立即检查预报匹配
-        if (warehouseId.value) {
-          try {
-            const matchRes = await matchForecastApi({
-              warehouseId: warehouseId.value,
-              items: parsedData.map(item => ({
-                trackingNo: item.trackingNo
-              }))
+          const checkRes = checkExistRes as { code: number; data?: any };
+          if (checkRes.code === 0) {
+            // 修改这里以匹配新的数据结构
+            const existingTrackingNos = new Set(checkRes.data?.exists || []);
+
+            parsedData.forEach(item => {
+              item.existsInStock = existingTrackingNos.has(item.trackingNo);
             });
-
-            if (matchRes.code === 0 && matchRes.data?.items) {
-              // 更新匹配状态和详情
-              parsedData.forEach(item => {
-                const matchItem = matchRes.data.items.find(
-                  match => match.tracking_no === item.trackingNo
-                );
-                if (matchItem) {
-                  item.matchedForecast = matchItem.matched;
-                  item.forecastDetail = matchItem;
-                  // 添加状态相关信息
-                  item.status = matchItem.status;
-                  item.stockInTime = matchItem.stock_in_time;
-                  item.settleTime = matchItem.settle_time;
-                }
-              });
-            }
-          } catch (error) {
-            console.error("预报匹配检查失败", error);
           }
-        }
 
-        importData.value = parsedData;
-        ElMessage.success("文件解析成功");
+          // 如果选择了仓库，立即检查预报匹配
+          if (warehouseId.value) {
+            try {
+              const matchRes = await matchForecastApi({
+                warehouseId: warehouseId.value,
+                items: parsedData.map(item => ({
+                  trackingNo: item.trackingNo
+                }))
+              });
+
+              const matchResult = matchRes as { code: number; data?: any };
+              if (matchResult.code === 0 && matchResult.data?.items) {
+                // 更新匹配状态和详情
+                parsedData.forEach(item => {
+                  const matchItem = matchResult.data.items.find(
+                    match => match.tracking_no === item.trackingNo
+                  );
+                  if (matchItem) {
+                    item.matchedForecast = matchItem.matched;
+                    item.forecastDetail = matchItem;
+                    // 添加状态相关信息
+                    item.status = matchItem.status;
+                    item.stockInTime = matchItem.stock_in_time;
+                    item.settleTime = matchItem.settle_time;
+                  }
+                });
+              }
+            } catch (error) {
+              console.error("预报匹配检查失败", error);
+            }
+          }
+
+          importData.value = parsedData;
+          ElMessage.success("文件解析成功");
+        } else {
+          ElMessage.error("文件读取失败，格式不正确");
+          loading.close();
+          parsing.value = false;
+          return;
+        }
       } catch (error) {
         console.error("文件处理失败", error);
         ElMessage.error("文件处理失败");
@@ -253,12 +249,13 @@ const handleSubmit = async () => {
 
     const res = await importStockApi(submitData);
 
-    if (res.code === 0) {
+    const result = res as { code: number; message?: string };
+    if (result.code === 0) {
       ElMessage.success("导入成功");
       emit("success");
       closeDialog();
     } else {
-      ElMessage.error(res.message || "导入失败");
+      ElMessage.error(result.message || "导入失败");
     }
   } catch (error) {
     console.error("导入失败", error);
@@ -310,10 +307,11 @@ watch(warehouseId, async newVal => {
         }))
       });
 
-      if (matchRes.code === 0 && matchRes.data) {
+      const matchResult = matchRes as { code: number; data?: any };
+      if (matchResult.code === 0 && matchResult.data) {
         importData.value = importData.value.map(item => ({
           ...item,
-          matchedForecast: matchRes.data.includes(item.trackingNo)
+          matchedForecast: matchResult.data.includes(item.trackingNo)
         }));
       }
     } catch (error) {
