@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
-import { ElMessage, ElMessageBox, ElLoading } from "element-plus";
+import { ElMessage, ElLoading } from "element-plus";
 import {
   UploadFilled,
   View,

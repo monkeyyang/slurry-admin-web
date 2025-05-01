@@ -246,22 +246,22 @@ const openEditDialog = (row: any) => {
 };
 
 onMounted(async () => {
-  // First get warehouse options
+  // 首先获取仓库选项
   await getWarehouseOptions();
 
-  // Check for URL parameters and set them directly before making the request
+  // 检查 URL 中是否有参数，并在发起请求前直接设置这些参数
   if (route.query.warehouse_id) {
-    // Set the value directly
+    // 直接设置值
     searchForm.warehouseId = route.query.warehouse_id as string;
-    console.log("Set warehouse ID from URL:", searchForm.warehouseId);
+    console.log("从 URL 中设置的仓库 ID:", searchForm.warehouseId);
 
-    // Wait for the next DOM update cycle before making the request
+    // 等待下一个 DOM 更新周期再发起请求
     await nextTick();
 
-    // Now get the list with the correctly set parameter
+    // 此时参数已正确设置，获取列表数据
     getList();
   } else {
-    // No warehouse ID in URL, just get all data
+    // URL 中没有仓库 ID，直接获取所有数据
     getList();
   }
 });

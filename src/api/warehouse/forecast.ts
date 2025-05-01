@@ -71,3 +71,18 @@ export const batchAddToCrawlerQueueApi = (ids: (number | string)[]) => {
     }
   );
 };
+
+/**
+ * 检查订单号是否已存在
+ *
+ * @param data
+ * @returns
+ */
+export const checkOrderNoExistsApi = (data: { orderNos: string[] }) => {
+  return http.request("post", "/forecast/check-order-no-exists", {
+    data,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+};

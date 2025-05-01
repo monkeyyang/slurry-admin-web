@@ -1,27 +1,25 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useHook } from "./hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { Tickets, Edit, Delete } from "@element-plus/icons-vue";
+import { Edit, Delete, WarningFilled } from "@element-plus/icons-vue";
 import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/ep/refresh";
 import AddFill from "@iconify-icons/ri/add-circle-line";
 import Upload from "@iconify-icons/ep/upload";
 import Spider from "@iconify-icons/ri/bug-line";
 import { hasPerms } from "@/utils/auth";
-import ImportExcel from "./components/ImportExcel.vue";
+import ImportForm from "./components/import-form.vue";
 import AddUrl from "./components/AddUrl.vue";
-import ScanDialog from "./components/ScanDialog.vue";
-import ImportStorage from "./components/ImportStorage.vue";
 import EditForm from "./components/EditForm.vue";
 import { ElMessage } from "element-plus";
 
 const statusMap = {
   "-3": { type: "warning", label: "等待支付" },
   "-2": { type: "danger", label: "系统取消" },
-  "-1": { type: "danger", label: "同步失败" },
-  "0": { type: "info", label: "待爬取" },
+  "-1": { type: "danger", label: "抓取数据失败" },
+  "0": { type: "info", label: "正在爬取数据" },
   "1": { type: "primary", label: "第一步" },
   "2": { type: "primary", label: "正在处理" },
   "3": { type: "primary", label: "准备发货" },
@@ -37,12 +35,9 @@ defineOptions({
 
 const formRef = ref();
 const addUrlVisible = ref(false);
-const importExcelVisible = ref(false);
-const dialogTitle = ref("");
+const importFormVisible = ref(false);
 const currentRow = ref<any>({});
-const scanDialogVisible = ref(false);
 const editDialogVisible = ref(false);
-const importStorageVisible = ref(false);
 
 const {
   searchFormParams,
@@ -58,7 +53,8 @@ const {
   tableRef,
   warehouseOptions,
   getWarehouseOptions,
-  handleBatchAddToCrawlerQueue
+  handleBatchAddToCrawlerQueue,
+  warehouseLoading
 } = useHook();
 
 // 选中的行
@@ -79,13 +75,7 @@ const openAddUrlDialog = () => {
 
 // 打开Excel导入弹窗
 const openImportDialog = () => {
-  importExcelVisible.value = true;
-};
-
-// 打开扫码弹窗
-const openScanDialog = (row: any) => {
-  currentRow.value = row;
-  scanDialogVisible.value = true;
+  importFormVisible.value = true;
 };
 
 // 打开编辑弹窗
@@ -124,15 +114,9 @@ const openEditDialog = async (row: any) => {
   }
 };
 
-// 打开导入入库弹窗
-const openImportStorageDialog = () => {
-  importStorageVisible.value = true;
-};
-
 onMounted(() => {
-  // 移除仓库预加载，直接获取列表
-  // await getWarehouseOptions();
   getList();
+  getWarehouseOptions(); // 获取真实仓库选项
 });
 
 // 分页处理
@@ -189,6 +173,11 @@ const handleUpdateSuccess = updatedData => {
     // 如果没有传递更新的数据，则直接刷新列表
     getList();
   }
+};
+
+// 处理加载仓库事件
+const handleLoadWarehouses = () => {
+  getWarehouseOptions();
 };
 </script>
 
@@ -306,20 +295,24 @@ const handleUpdateSuccess = updatedData => {
           @selection-change="handleSelectionChange"
         >
           <template #status="{ row }">
-            <el-tag :type="statusMap[row.status]?.type" size="small">
+            <el-tooltip
+              v-if="row.status === '-1'"
+              :content="row.crawler_error || '未获取到具体失败原因'"
+              placement="top"
+              effect="dark"
+            >
+              <el-tag type="danger" size="small">
+                {{ statusMap[row.status]?.label }}
+                <el-icon class="warning-icon">
+                  <WarningFilled />
+                </el-icon>
+              </el-tag>
+            </el-tooltip>
+            <el-tag v-else :type="statusMap[row.status]?.type" size="small">
               {{ statusMap[row.status]?.label }}
             </el-tag>
           </template>
           <template #operation="{ row }">
-            <!-- <el-button
-              v-if="hasPerms(['forecast:scan'])"
-              type="primary"
-              link
-              :icon="Tickets"
-              @click="openScanDialog(row)"
-            >
-              扫码入库
-            </el-button> -->
             <el-button
               v-if="hasPerms(['forecast:update'])"
               type="warning"
@@ -349,20 +342,20 @@ const handleUpdateSuccess = updatedData => {
     </PureTableBar>
 
     <!-- URL输入弹窗 -->
-    <AddUrl v-model:visible="addUrlVisible" @success="getList" />
-
-    <!-- Excel导入弹窗 -->
-    <ImportExcel v-model:visible="importExcelVisible" @success="getList" />
-
-    <!-- 扫码弹窗 -->
-    <ScanDialog
-      v-model:visible="scanDialogVisible"
-      :row="currentRow"
+    <AddUrl
+      v-model:visible="addUrlVisible"
+      :warehouse-options="warehouseOptions"
       @success="getList"
     />
 
-    <!-- 导入入库弹窗 -->
-    <ImportStorage v-model:visible="importStorageVisible" @success="getList" />
+    <!-- Excel导入弹窗 -->
+    <ImportForm
+      v-model:visible="importFormVisible"
+      :warehouse-options="warehouseOptions"
+      :warehouse-loading="warehouseLoading"
+      @load-warehouses="handleLoadWarehouses"
+      @success="getList"
+    />
 
     <!-- 修改预报表单 -->
     <edit-form
@@ -398,5 +391,12 @@ const handleUpdateSuccess = updatedData => {
 
 .empty-placeholder {
   padding: 40px 0;
+}
+
+.warning-icon {
+  margin-left: 4px;
+  font-size: 14px;
+  color: #e6a23c;
+  vertical-align: middle;
 }
 </style>

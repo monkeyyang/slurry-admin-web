@@ -99,7 +99,7 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="closeDialog">取 消</el-button>
+        <el-button @click="closeDialog as any">取 消</el-button>
         <el-button
           type="primary"
           :loading="loading"
@@ -155,7 +155,7 @@ const form = reactive({
   id: "",
   preorderNo: "",
   productName: "",
-  warehouseId: "",
+  warehouseId: "" as string | number,
   orderNumber: "",
   trackingNo: "",
   productCode: "",
@@ -206,6 +206,19 @@ const formLoading = ref(true);
 // 本地维护仓库列表
 const warehouseList = ref([]);
 const warehouseLoading = ref(false);
+
+// 类型定义以匹配仓库数据结构
+interface WarehouseResponse {
+  code: number;
+  data: {
+    data: Array<{
+      id: number | string;
+      name: string;
+      [key: string]: any;
+    }>;
+  };
+  message?: string;
+}
 
 // 修改处理下拉框展开事件函数，确保每次点击都加载完整列表
 const handleWarehouseDropdownChange = async (visible: boolean) => {
@@ -264,15 +277,16 @@ const fetchWarehouseOptions = async () => {
     });
 
     console.log("获取仓库列表响应:", response);
+    const typedResponse = response as WarehouseResponse;
 
     if (
-      response &&
-      response.code === 0 &&
-      response.data &&
-      response.data.data
+      typedResponse &&
+      typedResponse.code === 0 &&
+      typedResponse.data &&
+      typedResponse.data.data
     ) {
       // 将API返回的数据映射为选项格式
-      const options = response.data.data.map(item => ({
+      const options = typedResponse.data.data.map(item => ({
         label: item.name,
         value: item.id
       }));
@@ -311,10 +325,7 @@ watch(
         form.productName = props.row.productName;
 
         // 设置仓库ID (确保类型匹配)
-        form.warehouseId =
-          typeof props.row.warehouseId === "number"
-            ? props.row.warehouseId
-            : Number(props.row.warehouseId);
+        form.warehouseId = String(props.row.warehouseId);
 
         // 重要：立即添加当前仓库到选项列表，确保显示名称而不是ID
         if (form.warehouseId && props.row.warehouseName) {

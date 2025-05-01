@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useHook } from "../hook";
 
@@ -61,10 +61,15 @@ const closeDialog = () => {
   emit("update:visible", false);
 };
 
-// 组件挂载时获取仓库列表
-onMounted(() => {
-  getWarehouseOptions();
-});
+// 监听弹窗显示
+watch(
+  () => props.visible,
+  async newVal => {
+    if (newVal && warehouseOptions.value.length === 0) {
+      await getWarehouseOptions();
+    }
+  }
+);
 </script>
 
 <template>

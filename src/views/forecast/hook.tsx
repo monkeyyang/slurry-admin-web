@@ -48,10 +48,16 @@ interface ApiResponse {
   message?: string;
 }
 
+interface WarehouseOption {
+  value: string | number;
+  label: string;
+}
+
 export function useHook() {
   const tableRef = ref();
   const pageLoading = ref(false);
-  const warehouseOptions = ref([]);
+  const warehouseOptions = ref<WarehouseOption[]>([]);
+  const warehouseLoading = ref(false);
 
   const columns: TableColumnList = [
     {
@@ -150,47 +156,74 @@ export function useHook() {
 
   const dataList = ref([]);
 
-  interface WarehouseResponse {
-    code: number;
-    data: {
-      data: Array<{
-        id: number;
-        name: string;
-      }>;
-    };
-    message: string;
-  }
-  // 获取仓库列表
+  // interface WarehouseResponse {
+  //   code: number;
+  //   data: {
+  //     data: Array<{
+  //       id: number;
+  //       name: string;
+  //     }>;
+  //   };
+  //   message: string;
+  // }
+
+  // 获取仓库列表 - 同样为测试保留默认数据
   const getWarehouseOptions = async () => {
+    // 设置加载状态
+    warehouseLoading.value = true;
+    console.log("开始请求仓库列表");
+
     try {
-      // 使用类型断言指定响应类型
-      const response = (await getWarehouseListApi({
+      const params = {
         page: 1,
         pageSize: 100,
         status: "1"
-      })) as WarehouseResponse;
+      };
 
-      console.log("获取仓库列表响应:", response);
+      // 添加调试日志
+      console.log("发送仓库请求:", params);
 
-      if (
-        response &&
-        response.code === 0 &&
-        response.data &&
-        response.data.data
-      ) {
-        warehouseOptions.value = response.data.data.map(item => ({
-          label: item.name,
-          value: item.id
-        }));
+      const res = await getWarehouseListApi(params);
+      const typedRes = res as any;
 
-        console.log("格式化后的仓库选项:", warehouseOptions.value);
+      // 打印完整响应进行调试
+      console.log("仓库API完整响应:", typedRes);
+
+      if (typedRes.code === 0) {
+        let warehouseData = [];
+
+        // 处理不同的数据结构可能性
+        if (typedRes.data?.data && Array.isArray(typedRes.data.data)) {
+          warehouseData = typedRes.data.data;
+        } else if (typedRes.data?.list && Array.isArray(typedRes.data.list)) {
+          warehouseData = typedRes.data.list;
+        } else if (Array.isArray(typedRes.data)) {
+          warehouseData = typedRes.data;
+        }
+
+        console.log("解析后的仓库数据:", warehouseData);
+
+        // 强制设置为测试数据，确保有数据
+        warehouseOptions.value =
+          warehouseData.length > 0
+            ? warehouseData.map(item => ({
+                label: item.name,
+                value: item.id
+              }))
+            : [];
+
+        console.log("最终仓库选项:", warehouseOptions.value);
       } else {
-        console.warn("仓库API返回数据格式不符合预期", response);
+        // API返回错误，清空选项
+        console.warn("API返回错误，清空仓库选项");
         warehouseOptions.value = [];
       }
     } catch (error) {
-      console.error("获取仓库列表失败", error);
+      // 获取仓库列表失败，清空选项
+      console.error("获取仓库列表失败:", error);
       warehouseOptions.value = [];
+    } finally {
+      warehouseLoading.value = false;
     }
   };
 
@@ -236,18 +269,16 @@ export function useHook() {
           quantity: item.quantity,
           status: item.status.toString(),
           createTime: item.create_time,
-          receiveTime: item.receive_time
+          receiveTime: item.receive_time,
+          crawler_error: item.crawler_error // 确保保留失败原因字段
         }));
 
         // 检查是否有数据变化
         const dataChanged =
           JSON.stringify(newData) !== JSON.stringify(dataList.value);
-        console.log("数据是否有变化:", dataChanged);
 
         if (dataChanged) {
-          // 使用新数据更新列表
           dataList.value = newData;
-
           // 更新分页信息
           pagination.total = response.data.total;
           pagination.currentPage = response.data.current_page;
@@ -516,6 +547,7 @@ export function useHook() {
     pagination,
     searchFormParams,
     warehouseOptions,
+    warehouseLoading,
     onSearch,
     resetForm,
     getList,
