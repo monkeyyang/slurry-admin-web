@@ -132,7 +132,16 @@ export function getWarehouseItemsApi(params: { warehouse_id: number }) {
  */
 export async function getWarehouseOptionsWithCountry(params = {}) {
   try {
-    const res = await getWarehouseListApi(params);
+    // Define response type
+    type ApiResponse = {
+      code: number;
+      data: {
+        data: WarehouseDTO[];
+      };
+    };
+
+    const res = (await getWarehouseListApi(params)) as ApiResponse;
+
     if (res.code === 0 && res.data?.data && Array.isArray(res.data.data)) {
       return res.data.data.map(item => {
         // 获取国家显示名称

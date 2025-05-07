@@ -434,13 +434,9 @@ export function useHook() {
           await addWarehouseApi(formData);
           message("添加成功", { type: "success" });
           getList();
-          return true;
         } catch (error) {
           message("添加失败", { type: "error" });
-          return false;
         }
-      } else {
-        return false;
       }
     });
   };
@@ -454,13 +450,9 @@ export function useHook() {
           await updateWarehouseApi(formData.id, formData);
           message("更新成功", { type: "success" });
           getList();
-          return true;
         } catch (error) {
           message("更新失败", { type: "error" });
-          return false;
         }
-      } else {
-        return false;
       }
     });
   };

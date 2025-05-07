@@ -43,6 +43,8 @@ export interface CustomerOrderDetail {
   customer_name: string;
   warehouse_id: number;
   warehouse_name: string;
+  country: string;
+  country_name: string;
   product_name: string;
   goods_url: string;
   order_number: string;

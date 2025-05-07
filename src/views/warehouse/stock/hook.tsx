@@ -1,7 +1,6 @@
 import { reactive, ref } from "vue";
 import { Delete, Check, Money, InfoFilled } from "@element-plus/icons-vue";
 import { matchForecastApi } from "@/api/warehouse/stock";
-import { getWarehouseListApi } from "@/api/warehouse";
 import {
   getStockListApi,
   confirmStockInApi,
