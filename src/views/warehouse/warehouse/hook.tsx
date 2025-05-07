@@ -151,6 +151,27 @@ interface WarehouseApiResponse {
   message: string;
 }
 
+// 国家/地区代码颜色映射
+const regionColors = {
+  US: { color: "#409EFF", bg: "#ecf5ff" }, // 美国 - 蓝色
+  CA: { color: "#67C23A", bg: "#f0f9eb" }, // 加拿大 - 绿色
+  UK: { color: "#E6A23C", bg: "#fdf6ec" }, // 英国 - 橙色
+  CN: { color: "#F56C6C", bg: "#fef0f0" }, // 中国 - 红色
+  JP: { color: "#909399", bg: "#f4f4f5" }, // 日本 - 灰色
+  DE: { color: "#9B59B6", bg: "#f5f0fa" }, // 德国 - 紫色
+  FR: { color: "#3498DB", bg: "#edf7ff" }, // 法国 - 天蓝色
+  AU: { color: "#16A085", bg: "#e6f7f3" } // 澳大利亚 - 青绿色
+};
+
+// 获取国家颜色样式
+const getCountryStyle = (
+  code: string | undefined
+): { color: string; bg: string } => {
+  if (!code) return { color: "#909399", bg: "#f4f4f5" }; // 默认灰色
+  const countryCode = code.toUpperCase();
+  return regionColors[countryCode] || { color: "#909399", bg: "#f4f4f5" };
+};
+
 export function useHook() {
   const formRef = ref<FormInstance>();
   const pageLoading = ref(false);
@@ -185,18 +206,6 @@ export function useHook() {
 
   const selectedRows = ref([]);
 
-  // 国家/地区代码颜色映射
-  const regionColors = {
-    US: { color: "#409EFF", bg: "#ecf5ff" }, // 美国 - 蓝色
-    CA: { color: "#67C23A", bg: "#f0f9eb" }, // 加拿大 - 绿色
-    UK: { color: "#E6A23C", bg: "#fdf6ec" }, // 英国 - 橙色
-    FR: { color: "#F56C6C", bg: "#fef0f0" }, // 法国 - 红色
-    DE: { color: "#909399", bg: "#f4f4f5" }, // 德国 - 灰色
-    JP: { color: "#9C27B0", bg: "#f9ecff" }, // 日本 - 紫色
-    CN: { color: "#FF5722", bg: "#fff5f0" }, // 中国 - 橙红色
-    AU: { color: "#00BCD4", bg: "#e8f7fa" } // 澳大利亚 - 青色
-  };
-
   const columns: TableColumnList = [
     {
       type: "selection",
@@ -208,6 +217,12 @@ export function useHook() {
       label: "仓库名称",
       prop: "name",
       minWidth: 160
+    },
+    {
+      label: "国家",
+      prop: "country",
+      minWidth: 160,
+      slot: "country"
     },
     {
       label: "仓库地址",
@@ -508,6 +523,7 @@ export function useHook() {
     handleEdit,
     selectedRows,
     handleSelectionChange,
-    viewWarehouseStock
+    viewWarehouseStock,
+    getCountryStyle
   };
 }

@@ -15,6 +15,7 @@ import {
   matchForecastApi,
   checkTrackingNoExistsApi
 } from "@/api/warehouse/stock";
+import SelectWarehouse from "./select-warehouse.vue";
 
 const emit = defineEmits(["update:visible", "success"]);
 
@@ -342,18 +343,7 @@ watch(
     <el-form label-width="100px">
       <el-form-item label="选择仓库：" required>
         <div class="form-content-width">
-          <el-select
-            v-model="warehouseId"
-            placeholder="请选择仓库"
-            class="w-full"
-          >
-            <el-option
-              v-for="item in warehouseOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
+          <select-warehouse v-model="warehouseId" class="w-full" />
         </div>
       </el-form-item>
 

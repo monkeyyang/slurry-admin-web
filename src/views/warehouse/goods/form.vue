@@ -45,6 +45,8 @@ const countryOptions = [
 const formData = reactive({
   id: undefined,
   name: "",
+  status: "1",
+  remark: "",
   aliases: []
 });
 

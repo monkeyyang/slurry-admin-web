@@ -9,6 +9,8 @@ import {
 } from "@/api/warehouse/index";
 import { getGoodsListApi } from "@/api/warehouse/goods";
 import { Delete } from "@element-plus/icons-vue";
+import { getCountriesListApi } from "@/api/system/countries";
+import { getCountryColorStyle } from "@/utils/countryColors";
 
 const props = defineProps({
   visible: {
@@ -40,6 +42,9 @@ const formRef = ref<FormInstance>();
 const loading = ref(false);
 const goodsLoading = ref(false);
 const goodsList = ref([]);
+const countriesList = ref([]);
+const countriesLoading = ref(false);
+const countryFilter = ref("");
 
 const getGoodsList = async () => {
   goodsLoading.value = true;
@@ -52,24 +57,26 @@ const getGoodsList = async () => {
     console.log("货品列表API原始响应:", response);
 
     // 检查响应结构
-    if (response && response.data) {
-      console.log("API响应data字段:", response.data);
-
-      // 尝试不同的数据结构解析方式
-      if (response.data.data && Array.isArray(response.data.data.data)) {
-        // 如果是嵌套的data.data.data结构
-        goodsList.value = response.data.data.data;
-        console.log("解析方式1 - 嵌套data结构:", goodsList.value.length);
-      } else if (response.data.data && Array.isArray(response.data.data)) {
-        // 如果是data.data数组结构
-        goodsList.value = response.data.data;
-        console.log("解析方式2 - data数组结构:", goodsList.value.length);
-      } else if (Array.isArray(response.data)) {
-        // 如果直接是data数组
-        goodsList.value = response.data;
-        console.log("解析方式3 - 直接数组结构:", goodsList.value.length);
+    if (response && typeof response === "object") {
+      if (response.data && typeof response.data === "object") {
+        if (response.data.data && Array.isArray(response.data.data.data)) {
+          // 如果是嵌套的data.data.data结构
+          goodsList.value = response.data.data.data;
+          console.log("解析方式1 - 嵌套data结构:", goodsList.value.length);
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // 如果是data.data数组结构
+          goodsList.value = response.data.data;
+          console.log("解析方式2 - data数组结构:", goodsList.value.length);
+        } else if (Array.isArray(response.data)) {
+          // 如果直接是data数组
+          goodsList.value = response.data;
+          console.log("解析方式3 - 直接数组结构:", goodsList.value.length);
+        } else {
+          console.error("无法识别的数据结构:", response.data);
+          goodsList.value = [];
+        }
       } else {
-        console.error("无法识别的数据结构:", response.data);
+        console.error("API响应缺少data字段");
         goodsList.value = [];
       }
     } else {
@@ -84,12 +91,45 @@ const getGoodsList = async () => {
   }
 };
 
+const getCountriesList = async () => {
+  countriesLoading.value = true;
+  try {
+    // 添加pageSize参数获取更多国家数据
+    const response = await getCountriesListApi({
+      pageSize: 100, // 获取最多100条国家数据
+      status: "1" // 只获取启用状态的国家
+    });
+
+    if (response && response.code === 0 && response.data) {
+      // 确保数据结构正确
+      countriesList.value = Array.isArray(response.data.data)
+        ? response.data.data.map(item => ({
+            ...item,
+            code: item.code || "",
+            name_zh: item.name_zh || item.code || "",
+            name_en: item.name_en || ""
+          }))
+        : [];
+      console.log(`成功获取${countriesList.value.length}个国家`);
+    } else {
+      console.error("获取国家列表失败:", response);
+      countriesList.value = [];
+    }
+  } catch (error) {
+    console.error("获取国家列表失败:", error);
+    countriesList.value = [];
+  } finally {
+    countriesLoading.value = false;
+  }
+};
+
 watch(
   () => props.visible,
   val => {
     if (val) {
-      console.log("对话框打开，加载货品列表");
+      console.log("对话框打开，加载货品列表和国家列表");
       getGoodsList();
+      getCountriesList();
     }
   }
 );
@@ -110,6 +150,7 @@ const formData = reactive({
   status: "1",
   remark: "",
   goods_ids: [],
+  country: "",
   address: "",
   contact: "",
   phone: ""
@@ -143,6 +184,9 @@ watch(
       // 联系电话 - 可能的字段名：phone, contact_phone, phone_number
       formData.phone = val.phone || val.contact_phone || val.phone_number || "";
 
+      // 处理国家字段
+      formData.country = val.country || "";
+
       console.log("处理后的表单数据:", formData);
 
       // 正确获取货品ID
@@ -160,6 +204,7 @@ watch(
       formData.status = "1";
       formData.remark = "";
       formData.goods_ids = [];
+      formData.country = "";
       formData.address = "";
       formData.contact = "";
       formData.phone = "";
@@ -195,6 +240,7 @@ const handleSubmit = async () => {
           status: formData.status,
           remark: formData.remark,
           goods_ids: formData.goods_ids,
+          country: formData.country,
           address: formData.address,
           contact: formData.contact,
           phone: formData.phone
@@ -228,6 +274,39 @@ const clearGoodsSelection = () => {
   // 可选：添加提示
   message("已清空可入库货品", { type: "info" });
 };
+
+// 国家选择器筛选方法
+const filterCountries = (query, item) => {
+  if (!query) return true;
+  if (!item) return false;
+
+  query = query.toLowerCase();
+  return (
+    (item.name_zh && item.name_zh.toLowerCase().includes(query)) ||
+    (item.name_en && item.name_en.toLowerCase().includes(query)) ||
+    (item.code && item.code.toLowerCase().includes(query)) ||
+    (item.code2 && item.code2.toLowerCase().includes(query))
+  );
+};
+
+// 保留格式化国家标签显示函数
+const formatCountryLabel = item => {
+  if (!item) return "";
+  return item?.name_zh
+    ? `${item.name_zh} (${item?.name_en || ""})`
+    : item?.code || "";
+};
+
+// 保留但不再需要样式相关的函数
+// const getCountryStyle = code => {
+//   return getCountryColorStyle(code);
+// };
+
+// 保留但不再使用
+// const findCountryNameByCode = code => {
+//   const country = countriesList.value.find(item => item.code === code);
+//   return country?.name_zh || code;
+// };
 </script>
 
 <template>
@@ -249,9 +328,63 @@ const clearGoodsSelection = () => {
         <el-input v-model="formData.name" placeholder="请输入仓库名称" />
       </el-form-item>
 
-      <el-form-item label="仓库地址" prop="address">
-        <el-input v-model="formData.address" placeholder="请输入仓库地址" />
-      </el-form-item>
+      <el-row :gutter="20">
+        <el-col :span="10">
+          <el-form-item
+            label="国家"
+            prop="country"
+            :rules="[
+              { required: true, message: '请选择国家', trigger: 'change' }
+            ]"
+          >
+            <el-select
+              v-model="formData.country"
+              placeholder="请选择或搜索国家"
+              filterable
+              :loading="countriesLoading"
+              :filter-method="filterCountries"
+              style="width: 100%"
+            >
+              <!-- 移除自定义选中标签 -->
+              <!-- <template #tag="{ item }">
+                <el-tag
+                  :style="{...}"
+                  disable-transitions
+                  class="country-selected-tag"
+                >
+                  {{ findCountryNameByCode(item.value) }}
+                </el-tag>
+              </template> -->
+
+              <!-- 简化选项列表 -->
+              <el-option
+                v-for="item in countriesList"
+                :key="item?.code || item?.id || index"
+                :value="item?.code || ''"
+                :label="formatCountryLabel(item)"
+              >
+                <div class="country-simple-option">
+                  <span>{{ item?.name_zh || item?.code || "" }}</span>
+                  <span v-if="item?.name_en" class="country-en-name">
+                    {{ item.name_en }} ({{ item?.code || "" }})
+                  </span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="14">
+          <el-form-item
+            label="仓库地址"
+            prop="address"
+            :rules="[
+              { required: true, message: '请输入仓库地址', trigger: 'blur' }
+            ]"
+          >
+            <el-input v-model="formData.address" placeholder="请输入仓库地址" />
+          </el-form-item>
+        </el-col>
+      </el-row>
 
       <el-row :gutter="20">
         <el-col :span="12">
@@ -396,4 +529,42 @@ const clearGoodsSelection = () => {
 .clear-goods-btn {
   flex-shrink: 0;
 }
+
+.country-simple-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.country-en-name {
+  color: #8492a6;
+  font-size: 13px;
+}
+
+/* 更新国家选项样式为简单格式 */
+.country-simple-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.country-en-name {
+  color: #8492a6;
+  font-size: 13px;
+}
+
+/* 移除不再需要的样式 */
+/* .country-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.country-selected-tag {
+  margin-right: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+} */
 </style>

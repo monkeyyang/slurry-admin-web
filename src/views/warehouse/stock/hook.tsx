@@ -15,6 +15,7 @@ import type {
 } from "@/api/warehouse/stock/types";
 import type { FormInstance } from "element-plus";
 import { ElMessageBox, ElMessage } from "element-plus";
+import { getWarehouseOptionsWithCountry } from "@/api/warehouse/index";
 
 export function useHook() {
   // 搜索表单
@@ -177,22 +178,7 @@ export function useHook() {
 
   // 获取仓库列表
   const getWarehouseOptions = async () => {
-    try {
-      const res = await getWarehouseListApi();
-      const { code, data } = res as { code: number; data?: any };
-      if (code === 0 && data?.data && Array.isArray(data.data)) {
-        warehouseOptions.value = data.data.map(item => ({
-          value: item.id,
-          label: item.name
-        }));
-      } else {
-        warehouseOptions.value = [];
-        console.warn("获取仓库列表数据格式异常:", data);
-      }
-    } catch (error) {
-      console.error("获取仓库列表失败", error);
-      warehouseOptions.value = [];
-    }
+    warehouseOptions.value = await getWarehouseOptionsWithCountry();
   };
 
   // 获取数据列表

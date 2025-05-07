@@ -33,7 +33,8 @@ const {
   handleDelete,
   getList,
   handleSelectionChange,
-  viewWarehouseStock
+  viewWarehouseStock,
+  getCountryStyle
 } = useHook();
 
 function openDialog(title: string, row?: any) {
@@ -164,6 +165,25 @@ function openDialog(title: string, row?: any) {
                   </el-button>
                 </template>
               </el-popconfirm>
+            </template>
+            <template #country="{ row }">
+              <el-tag
+                v-if="row.country"
+                :style="{
+                  color: getCountryStyle(row.country).color,
+                  backgroundColor: getCountryStyle(row.country).bg,
+                  borderColor: getCountryStyle(row.country).color + '20'
+                }"
+              >
+                {{ row.country_name_zh || row.country }}
+                <span
+                  v-if="row.country_name_en"
+                  style="font-size: 12px; margin-left: 4px"
+                >
+                  ({{ row.country_name_en }})
+                </span>
+              </el-tag>
+              <span v-else>-</span>
             </template>
           </pure-table>
         </template>
