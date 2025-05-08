@@ -102,36 +102,51 @@ export function useHook() {
     },
     {
       label: "UPC",
-      prop: "upc",
-      width: 120
+      prop: "product_code",
+      width: 120,
+      cellRenderer: data => {
+        const row = data.row;
+        if (!row) return null;
+        return <span>{row.product_code || "-"}</span>;
+      }
     },
     {
       label: "IMEI",
       prop: "imei",
-      width: 120
+      width: 120,
+      cellRenderer: data => {
+        const row = data.row;
+        if (!row) return null;
+        return <span>{row.imei || "-"}</span>;
+      }
     },
     {
       label: "匹配状态",
       width: 120,
-      cellRenderer: ({ row }) => (
-        <div class="flex items-center gap-2">
-          <el-tag type={row.forecast_id ? "success" : "warning"}>
-            {row.forecast_id ? "有预报" : "无预报"}
-          </el-tag>
-          {row.forecast_id && (
-            <el-button
-              link
-              type="primary"
-              onClick={() => handleViewDetail(row)}
-            >
-              <el-icon>
-                <InfoFilled />
-              </el-icon>
-              详情
-            </el-button>
-          )}
-        </div>
-      )
+      cellRenderer: data => {
+        const row = data.row;
+        if (!row) return null;
+
+        return (
+          <div class="flex items-center gap-2">
+            <el-tag type={row.forecast_id ? "success" : "warning"}>
+              {row.forecast_id ? "有预报" : "无预报"}
+            </el-tag>
+            {row.forecast_id && (
+              <el-button
+                link
+                type="primary"
+                onClick={() => handleViewDetail(row)}
+              >
+                <el-icon>
+                  <InfoFilled />
+                </el-icon>
+                详情
+              </el-button>
+            )}
+          </div>
+        );
+      }
     },
     ...(hasPerms(["stock:settle:money"])
       ? [
@@ -139,9 +154,22 @@ export function useHook() {
             label: "结算金额",
             prop: "settle_money",
             width: 120,
-            cellRenderer: ({ row }) => (
-              <div class="flex items-center gap-2">{row.settle_money}</div>
-            )
+            cellRenderer: data => {
+              const row = data.row;
+              if (!row) return null;
+
+              // 格式化金额，保留两位小数
+              const amount = row.settle_money
+                ? Number(row.settle_money).toFixed(2)
+                : "0.00";
+
+              return (
+                <div class="money-cell">
+                  <span class="currency-symbol">¥</span>
+                  <span class="amount">{amount}</span>
+                </div>
+              );
+            }
           }
         ]
       : []),

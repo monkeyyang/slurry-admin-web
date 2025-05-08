@@ -23,11 +23,12 @@ const dialogVisible = ref(false);
 const loading = ref(false);
 const warehouseId = ref("");
 
-// 扩展导入数据的类型
+// 扩展导入数据的类型，增加imei字段
 interface ImportItem {
   goodsName: string;
   trackingNo: string;
-  productCode?: string;
+  productCode?: string; // 这将作为UPC
+  imei?: string; // 新增IMEI字段
   matchedForecast: boolean;
   forecastDetail?: any;
   status?: number;
@@ -100,11 +101,12 @@ const handleFileChange = async file => {
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-          // 确保所有字段都转换为字符串
+          // 修改字段映射，分别处理UPC和IMEI
           const parsedData = jsonData.map(row => ({
             goodsName: String(row["货物名称"] || ""),
             trackingNo: String(row["快递单号"] || ""),
-            productCode: row["UPC/IMEI"] ? String(row["UPC/IMEI"]) : undefined,
+            productCode: row["UPC"] ? String(row["UPC"]) : undefined, // 映射到UPC
+            imei: row["IMEI"] ? String(row["IMEI"]) : undefined, // 映射到IMEI
             matchedForecast: false,
             existsInStock: false,
             forecastDetail: null,
@@ -112,6 +114,15 @@ const handleFileChange = async file => {
             stockInTime: null,
             settleTime: null
           }));
+
+          // 兼容旧格式，如果存在UPC/IMEI字段
+          if (jsonData.length > 0 && "UPC/IMEI" in jsonData[0]) {
+            parsedData.forEach((item, index) => {
+              if (jsonData[index]["UPC/IMEI"]) {
+                item.productCode = String(jsonData[index]["UPC/IMEI"]);
+              }
+            });
+          }
 
           // 检查快递单号是否已存在于库存中
           const checkExistRes = await checkTrackingNoExistsApi({
@@ -239,6 +250,7 @@ const handleSubmit = async () => {
         goodsName: item.goodsName,
         trackingNo: item.trackingNo,
         productCode: item.productCode,
+        imei: item.imei,
         forecastId:
           item.matchedForecast && item.forecastDetail?.forecast_id
             ? item.forecastDetail.forecast_id
@@ -273,10 +285,10 @@ const closeDialog = () => {
 
 // 下载模板
 const downloadTemplate = () => {
-  const header = [["货物名称", "快递单号", "UPC/IMEI"]];
+  const header = [["货物名称", "快递单号", "UPC", "IMEI"]];
   const example = [
-    ["示例商品1", "SF1234567890", "123456789012"],
-    ["示例商品2", "YT1234567890", ""]
+    ["示例商品1", "SF1234567890", "123456789012", "123456789012"],
+    ["示例商品2", "YT1234567890", "987654321098", "987654321098"]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet([...header, ...example]);
@@ -402,10 +414,17 @@ watch(
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="productCode" label="UPC/IMEI" width="150">
+            <el-table-column prop="productCode" label="UPC" width="150">
               <template #default="{ row }">
                 <span :class="{ 'invalid-text': !isValidRecord(row) }">
                   {{ row.productCode }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="imei" label="IMEI" width="150">
+              <template #default="{ row }">
+                <span :class="{ 'invalid-text': !isValidRecord(row) }">
+                  {{ row.imei }}
                 </span>
               </template>
             </el-table-column>

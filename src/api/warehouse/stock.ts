@@ -18,6 +18,7 @@ export const importStockApi = (data: {
     goodsName: string;
     trackingNo: string;
     productCode?: string;
+    imei?: string;
   }>;
 }) => {
   return http.request("post", "/warehouse/stock/import", { data });

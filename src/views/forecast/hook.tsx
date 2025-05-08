@@ -105,11 +105,6 @@ export function useHook() {
       minWidth: 120
     },
     {
-      label: "IMEI/UPC",
-      prop: "productCode",
-      minWidth: 120
-    },
-    {
       label: "数量",
       prop: "quantity",
       minWidth: 80

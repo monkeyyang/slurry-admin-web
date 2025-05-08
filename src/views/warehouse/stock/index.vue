@@ -64,14 +64,14 @@
           @refresh="getList"
         >
           <template #buttons>
-            <el-button
+            <!--<el-button
               type="primary"
               :icon="Plus"
               :loading="loading"
               @click="handleStorage"
             >
               入库
-            </el-button>
+            </el-button>-->
             <el-button
               type="success"
               :icon="useRenderIcon(ExcelFile)"
@@ -310,5 +310,29 @@ watch(
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+
+/* 金额样式 */
+:deep(.money-cell) {
+  display: flex;
+  justify-content: flex-end; /* 右对齐 */
+  align-items: center;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+:deep(.currency-symbol) {
+  color: #67c23a;
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+:deep(.amount) {
+  font-weight: 600;
+}
+
+/* 如果需要负数显示为红色 */
+:deep(.amount.negative) {
+  color: #f56c6c;
 }
 </style>
