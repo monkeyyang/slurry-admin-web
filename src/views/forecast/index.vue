@@ -14,6 +14,8 @@ import ImportForm from "./components/import-form.vue";
 import AddUrl from "./components/AddUrl.vue";
 import EditForm from "./components/EditForm.vue";
 import { ElMessage } from "element-plus";
+import { getCountryColorStyle } from "@/utils/countryColors";
+import { getCountryCode } from "../hook"; // 假设已在hook中导出
 
 const statusMap = {
   "-3": { type: "warning", label: "等待支付" },
@@ -398,5 +400,19 @@ const handleLoadWarehouses = () => {
   font-size: 14px;
   color: #e6a23c;
   vertical-align: middle;
+}
+
+/* 确保样式正确应用到渲染的单元格上 */
+:deep(.warehouse-column) {
+  display: flex;
+  align-items: center;
+}
+
+:deep(.warehouse-name) {
+  font-weight: 500;
+}
+
+:deep(.el-tag) {
+  white-space: nowrap;
 }
 </style>

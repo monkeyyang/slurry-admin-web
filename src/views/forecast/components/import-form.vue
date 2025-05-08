@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted } from "vue";
+import { ref, computed, reactive, nextTick, watch, onMounted } from "vue";
 import { ElMessage, ElLoading } from "element-plus";
 import { UploadFilled, Delete } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import { checkOrderNoExistsApi } from "@/api/warehouse/forecast";
 import { addForecastApi } from "@/api/warehouse/forecast";
+import SelectWarehouse from "@/views/warehouse/stock/select-warehouse.vue";
 
 const emit = defineEmits(["update:visible", "success", "load-warehouses"]);
 
 const dialogVisible = ref(false);
 const loading = ref(false);
-const warehouseId = ref<string | number>("");
+
+// 添加响应式表单对象
+const form = reactive({
+  warehouseId: "",
+  file: null
+});
 
 // 导入数据类型
 interface ImportItem {
@@ -45,11 +51,11 @@ watch(
     if (val) {
       // 打开弹窗时重置数据
       if (props.warehouseOptions && props.warehouseOptions.length > 0) {
-        warehouseId.value = props.warehouseOptions[0].value;
+        form.warehouseId = props.warehouseOptions[0].value;
       }
     } else {
       // 关闭弹窗时重置表单
-      warehouseId.value = "";
+      form.warehouseId = "";
       importData.value = [];
     }
   }
@@ -78,7 +84,7 @@ const parseOrderNo = (orderLink: string): string | undefined => {
 // 文件处理
 const handleFileChange = async file => {
   if (!file) return;
-  if (!warehouseId.value) {
+  if (!form.warehouseId) {
     ElMessage.warning("请先选择仓库");
     return false;
   }
@@ -179,7 +185,7 @@ const handleFileChange = async file => {
 
 const submitDisabled = computed(() => {
   return (
-    !warehouseId.value ||
+    !form.warehouseId ||
     !importData.value.length ||
     loading.value ||
     parsing.value
@@ -196,7 +202,7 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     const submitData = {
-      warehouseId: warehouseId.value,
+      warehouseId: form.warehouseId,
       urls: validItems.map(item => item.orderLink)
     };
 
@@ -207,7 +213,7 @@ const handleSubmit = async () => {
     if (result.code === 0) {
       ElMessage.success("导入成功");
       emit("success");
-      closeDialog();
+      handleClose();
     } else {
       ElMessage.error(result.message || "导入失败");
       if (result.data && result.data.failed) {
@@ -222,9 +228,10 @@ const handleSubmit = async () => {
   }
 };
 
-const closeDialog = () => {
+// 关闭对话框 - 重命名为handleClose以匹配模板
+const handleClose = () => {
   dialogVisible.value = false;
-  warehouseId.value = "";
+  form.warehouseId = "";
   importData.value = [];
   parsing.value = false;
 };
@@ -265,7 +272,7 @@ const onWarehouseClick = () => {
   emit("load-warehouses");
 
   // 打印组件内数据进行调试
-  console.log("warehouseId:", warehouseId.value);
+  console.log("warehouseId:", form.warehouseId);
   console.log("props.warehouseOptions:", props.warehouseOptions);
   console.log("props.warehouseLoading:", props.warehouseLoading);
 };
@@ -277,8 +284,8 @@ const onWarehouseClick = () => {
 //     console.log("仓库选项变化:", newOptions);
 //     if (newOptions && newOptions.length > 0) {
 //       // 强制设置为第一个仓库
-//       warehouseId.value = newOptions[0].value;
-//       console.log("自动选择仓库:", warehouseId.value);
+//       form.warehouseId = newOptions[0].value;
+//       console.log("自动选择仓库:", form.warehouseId);
 //     }
 //   },
 //   { immediate: true, deep: true }
@@ -290,33 +297,11 @@ const onWarehouseClick = () => {
     v-model="dialogVisible"
     title="导入预报"
     width="760px"
-    :close-on-click-modal="false"
-    :before-close="closeDialog"
+    :before-close="handleClose"
   >
-    <el-form label-width="100px">
-      <el-form-item label="选择仓库:" prop="warehouseId">
-        <div class="form-content-width">
-          <el-select
-            v-model="warehouseId"
-            placeholder="请选择仓库"
-            class="w-full"
-            :loading="props.warehouseLoading"
-            @click="onWarehouseClick"
-          >
-            <el-option
-              v-for="item in props.warehouseOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-          <div
-            v-if="props.warehouseOptions.length === 0"
-            class="mt-2 text-sm text-red-500"
-          >
-            无可用仓库，请点击仓库选择框加载
-          </div>
-        </div>
+    <el-form :model="form" label-width="100px">
+      <el-form-item label="选择仓库" required>
+        <select-warehouse v-model="form.warehouseId" class="w-full" />
       </el-form-item>
 
       <el-form-item label="上传文件：">
@@ -327,14 +312,16 @@ const onWarehouseClick = () => {
             action="#"
             :auto-upload="false"
             :on-change="handleFileChange"
-            :disabled="!warehouseId"
+            :disabled="!form.warehouseId"
             accept=".xlsx,.xls"
           >
             <el-icon class="el-icon--upload">
               <upload-filled />
             </el-icon>
             <div class="el-upload__text">
-              {{ warehouseId ? "将文件拖到此处，或点击上传" : "请先选择仓库" }}
+              {{
+                form.warehouseId ? "将文件拖到此处，或点击上传" : "请先选择仓库"
+              }}
             </div>
             <template #tip>
               <div class="el-upload__tip">
@@ -407,7 +394,7 @@ const onWarehouseClick = () => {
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="closeDialog">取消</el-button>
+        <el-button @click="handleClose">取消</el-button>
         <el-button
           type="primary"
           :loading="loading"

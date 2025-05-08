@@ -1,10 +1,10 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="title"
-    width="500px"
+    :title="isEdit ? '编辑预报' : '新增预报'"
+    width="760px"
     :close-on-click-modal="false"
-    destroy-on-close
+    :before-close="closeDialog"
   >
     <!-- 添加表单加载状态 -->
     <div v-if="formLoading" class="form-loading-container">
@@ -16,8 +16,8 @@
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="100px"
-      class="edit-form"
+      label-width="80px"
+      style="max-width: 460px"
     >
       <!-- 货物名称 -->
       <el-form-item label="货物名称" prop="productName">
@@ -30,35 +30,11 @@
 
       <!-- 仓库 -->
       <el-form-item label="仓库" prop="warehouseId">
-        <el-select
+        <select-warehouse
           v-model="form.warehouseId"
-          placeholder="请选择仓库"
-          style="width: 100%"
-          :disabled="isDisabled"
-          filterable
-          remote
-          :loading="warehouseLoading"
-          @visible-change="handleWarehouseDropdownChange"
-        >
-          <template #empty>
-            <el-empty
-              v-if="!warehouseLoading"
-              description="暂无数据"
-              :image-size="60"
-            />
-            <div v-else class="loading-placeholder">
-              <el-icon class="is-loading"><Loading /></el-icon>
-              <span>加载中...</span>
-            </div>
-          </template>
-
-          <el-option
-            v-for="item in warehouseList"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </el-select>
+          class="w-full"
+          @change="handleWarehouseChange"
+        />
       </el-form-item>
 
       <!-- 只读字段展示 -->
@@ -120,6 +96,7 @@ import type { FormInstance } from "element-plus";
 import { updateForecastApi } from "@/api/warehouse/forecast";
 import { getWarehouseListApi } from "@/api/warehouse";
 import { Loading } from "@element-plus/icons-vue";
+import SelectWarehouse from "@/views/warehouse/stock/select-warehouse.vue";
 
 const props = defineProps({
   visible: {
@@ -137,6 +114,14 @@ const props = defineProps({
   warehouseOptions: {
     type: Array,
     default: () => []
+  },
+  editData: {
+    type: Object,
+    default: null
+  },
+  isEdit: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -219,6 +204,14 @@ interface WarehouseResponse {
   };
   message?: string;
 }
+
+// 仓库变更处理函数
+const handleWarehouseChange = option => {
+  if (option && option.raw) {
+    // 可以处理选择仓库后的额外逻辑
+    console.log("选择的仓库详情:", option.raw);
+  }
+};
 
 // 修改处理下拉框展开事件函数，确保每次点击都加载完整列表
 const handleWarehouseDropdownChange = async (visible: boolean) => {
@@ -310,65 +303,38 @@ const fetchWarehouseOptions = async () => {
   }
 };
 
-// 修改初始化逻辑，确保仓库下拉框初始化时就有当前仓库选项
+// 监听props.row变化，初始化表单数据
 watch(
-  () => props.visible,
-  async val => {
-    if (val && props.row) {
+  () => props.row,
+  newVal => {
+    if (newVal && Object.keys(newVal).length > 0) {
       formLoading.value = true;
-      try {
-        console.log("编辑表单数据:", props.row);
 
+      // 短暂延迟以确保DOM更新
+      setTimeout(() => {
         // 初始化表单数据
-        form.id = props.row.id;
-        form.preorderNo = props.row.preorderNo;
-        form.productName = props.row.productName;
+        form.id = newVal.id || "";
+        form.preorderNo = newVal.preorderNo || "";
+        form.productName = newVal.productName || "";
+        form.warehouseId = newVal.warehouseId || ""; // 确保使用ID而不是名称
+        form.orderNumber = newVal.orderNumber || "";
+        form.trackingNo = newVal.trackingNo || "";
+        form.productCode = newVal.productCode || "";
+        form.quantity = newVal.quantity || "";
+        form.status = newVal.status || "";
 
-        // 设置仓库ID (确保类型匹配)
-        form.warehouseId = String(props.row.warehouseId);
-
-        // 重要：立即添加当前仓库到选项列表，确保显示名称而不是ID
-        if (form.warehouseId && props.row.warehouseName) {
-          // 检查列表中是否已存在该仓库
-          const exists = warehouseList.value.some(
-            w => w.value === form.warehouseId
-          );
-          if (!exists) {
-            // 添加当前仓库到选项中
-            warehouseList.value.push({
-              label: props.row.warehouseName,
-              value: form.warehouseId
-            });
-            console.log("已添加当前仓库到选项列表:", props.row.warehouseName);
-          }
-        }
-
-        // 继续设置其他字段
-        form.orderNumber = props.row.orderNumber;
-        form.trackingNo = props.row.trackingNo;
-        form.productCode = props.row.productCode;
-        form.quantity = props.row.quantity;
-        form.status = props.row.status;
-
-        if (isDisabled.value) {
-          ElMessage.warning("已入库状态的预报不可修改");
-        }
-
-        // 延迟验证
-        await nextTick();
-        if (formRef.value) {
-          formRef.value.clearValidate();
-        }
-      } catch (error) {
-        console.error("表单初始化失败", error);
-      } finally {
         formLoading.value = false;
-      }
-    } else {
-      formLoading.value = false;
+
+        // 调试输出
+        console.log("表单初始化完成:", {
+          formWarehouseId: form.warehouseId,
+          rowWarehouseId: newVal.warehouseId,
+          rowWarehouseName: newVal.warehouseName
+        });
+      }, 100);
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
 
 // 提交表单

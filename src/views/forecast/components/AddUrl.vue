@@ -2,6 +2,8 @@
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { useHook } from "../hook";
+// 导入公共仓库选择组件
+import SelectWarehouse from "@/views/warehouse/stock/select-warehouse.vue";
 
 const props = defineProps({
   visible: {
@@ -12,11 +14,19 @@ const props = defineProps({
 
 const emit = defineEmits(["update:visible", "success"]);
 
-const { warehouseOptions, getWarehouseOptions, addForecast } = useHook();
+const { addForecast } = useHook();
 
 const loading = ref(false);
 const urlContent = ref("");
-const warehouseId = ref(""); // 添加仓库ID
+const warehouseId = ref(""); // 仓库ID保持不变
+
+// 处理仓库选择变更
+const handleWarehouseChange = option => {
+  if (option && option.raw) {
+    console.log("选择的仓库详情:", option.raw);
+    // 可以在这里做一些额外处理
+  }
+};
 
 // 提交数据
 const handleSubmit = async () => {
@@ -68,11 +78,6 @@ const closeDialog = () => {
   warehouseId.value = ""; // 清空仓库选择
   emit("update:visible", false);
 };
-
-// 组件挂载时获取仓库列表
-onMounted(() => {
-  getWarehouseOptions();
-});
 </script>
 
 <template>
@@ -85,19 +90,12 @@ onMounted(() => {
   >
     <el-form>
       <el-form-item label="选择仓库" required>
-        <el-select
+        <!-- 替换为公共仓库选择组件 -->
+        <select-warehouse
           v-model="warehouseId"
-          placeholder="请选择仓库"
           class="w-full"
-          clearable
-        >
-          <el-option
-            v-for="item in warehouseOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </el-select>
+          @change="handleWarehouseChange"
+        />
       </el-form-item>
 
       <el-form-item label="URL数据" required>

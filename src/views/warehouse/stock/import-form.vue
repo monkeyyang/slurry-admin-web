@@ -194,7 +194,10 @@ const isValidRecord = (row: ImportItem) => {
   // 已存在于库存中的记录无效
   if (row.existsInStock) return false;
   // 已匹配且状态为已入库或已结算的记录无效
-  if (row.matchedForecast && row.status && row.status > 1) return false;
+  // if (row.matchedForecast && row.status && row.status > 1) return false;
+  if (row.matchedForecast && (row.status === 9 || row.status === 10))
+    return false;
+
   return true;
 };
 

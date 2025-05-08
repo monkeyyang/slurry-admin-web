@@ -2,6 +2,8 @@
 import { ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { importStockApi, matchForecastApi } from "@/api/warehouse/stock";
+// 导入公共仓库选择组件
+import SelectWarehouse from "@/views/warehouse/stock/select-warehouse.vue";
 
 const props = defineProps({
   visible: {
@@ -22,17 +24,57 @@ const warehouseId = ref("");
 const inputContent = ref("");
 const importData = ref([]);
 
-// 处理输入内容
+// 处理仓库选择变更
+const handleWarehouseChange = option => {
+  if (option && option.raw) {
+    console.log("选择的仓库:", option.raw);
+  }
+};
+
+// 处理输入内容 - 改进版本，处理货物名称中的空格
 const handleInput = () => {
   const lines = inputContent.value.trim().split("\n");
   importData.value = lines
     .filter(line => line.trim())
     .map(line => {
-      const [goodsName, trackingNo, productCode] = line.split(/[,，\s]+/);
+      // 方法1: 使用正则表达式匹配，更智能地处理空格
+      const parts = line.match(
+        /^(.*?)(?:\s{2,}|\t|[,，])(.*?)(?:\s{2,}|\t|[,，])?(.*)?$/
+      );
+
+      if (parts && parts.length >= 3) {
+        return {
+          goodsName: parts[1].trim(),
+          trackingNo: parts[2].trim(),
+          productCode: parts[3] ? parts[3].trim() : ""
+        };
+      }
+
+      // 方法2: 备用方案，按照传统方式拆分
+      const traditionalParts = line.split(/[,，\t]+/);
+      if (traditionalParts.length >= 2) {
+        return {
+          goodsName: traditionalParts[0].trim(),
+          trackingNo: traditionalParts[1].trim(),
+          productCode: traditionalParts[2] ? traditionalParts[2].trim() : ""
+        };
+      }
+
+      // 最后尝试使用最后一个单词作为跟踪号
+      const lastSpaceIndex = line.lastIndexOf(" ");
+      if (lastSpaceIndex > 0) {
+        return {
+          goodsName: line.substring(0, lastSpaceIndex).trim(),
+          trackingNo: line.substring(lastSpaceIndex + 1).trim(),
+          productCode: ""
+        };
+      }
+
+      // 返回无效数据
       return {
-        goodsName,
-        trackingNo,
-        productCode
+        goodsName: line,
+        trackingNo: "",
+        productCode: ""
       };
     })
     .filter(item => item.goodsName && item.trackingNo);
@@ -114,23 +156,18 @@ watch(
   <el-dialog
     v-model="dialogVisible"
     title="入库"
-    width="500px"
+    width="760px"
     :close-on-click-modal="false"
   >
     <el-form label-width="80px">
       <el-form-item label="选择仓库">
-        <el-select
+        <!-- 替换为公共仓库选择组件 -->
+        <select-warehouse
           v-model="warehouseId"
-          placeholder="请选择仓库"
           class="w-full"
-        >
-          <el-option
-            v-for="item in warehouseOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </el-select>
+          :apply-country-color="false"
+          @change="handleWarehouseChange"
+        />
       </el-form-item>
 
       <el-form-item label="输入数据">
@@ -138,7 +175,8 @@ watch(
           v-model="inputContent"
           type="textarea"
           :rows="5"
-          placeholder="请输入数据，每行一条记录：货物名称 快递单号 UPC/IMEI(可选)"
+          placeholder="请输入数据，每行一条记录：货物名称 快递单号 UPC/IMEI(可选)
+提示：货物名称中如有空格，请用2个以上空格、制表符或逗号分隔字段"
           @input="handleInput"
         />
       </el-form-item>

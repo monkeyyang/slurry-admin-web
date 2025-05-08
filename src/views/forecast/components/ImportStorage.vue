@@ -5,22 +5,31 @@
     width="500px"
     :close-on-click-modal="false"
   >
-    <el-upload
-      class="upload-demo"
-      drag
-      action="#"
-      :auto-upload="false"
-      :on-change="handleChange"
-      accept=".xlsx,.xls"
-    >
-      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-      <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-      <template #tip>
-        <div class="el-upload__tip">
-          请上传Excel文件，包含订单链接、快递单号和UPC/IMEI(可选)
-        </div>
-      </template>
-    </el-upload>
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form-item label="选择仓库" prop="warehouse_id">
+        <select-warehouse
+          v-model="form.warehouse_id"
+          class="w-full"
+          @change="handleWarehouseChange"
+        />
+      </el-form-item>
+      <el-upload
+        class="upload-demo"
+        drag
+        action="#"
+        :auto-upload="false"
+        :on-change="handleChange"
+        accept=".xlsx,.xls"
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <template #tip>
+          <div class="el-upload__tip">
+            请上传Excel文件，包含订单链接、快递单号和UPC/IMEI(可选)
+          </div>
+        </template>
+      </el-upload>
+    </el-form>
 
     <template #footer>
       <span class="dialog-footer">
@@ -34,11 +43,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { UploadFilled } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import { batchStorageApi } from "@/api/warehouse/forecast";
+import { batchStorageApi as stockBatchStorageApi } from "@/api/warehouse/stock";
+import SelectWarehouse from "@/views/warehouse/stock/select-warehouse.vue";
 
 const props = defineProps({
   visible: {
@@ -52,6 +63,13 @@ const emit = defineEmits(["update:visible", "success"]);
 const dialogVisible = ref(false);
 const loading = ref(false);
 const fileData = ref<any[]>([]);
+const form = reactive({
+  warehouse_id: "",
+  warehouse_name: ""
+});
+const rules = {
+  warehouse_id: [{ required: true, message: "请选择仓库", trigger: "change" }]
+};
 
 // 监听visible变化
 watch(
@@ -98,6 +116,13 @@ const handleChange = (file: any) => {
   reader.readAsArrayBuffer(file.raw);
 };
 
+// 处理仓库变更
+const handleWarehouseChange = option => {
+  if (option && option.raw) {
+    form.warehouse_name = option.raw.name || "";
+  }
+};
+
 // 处理导入
 const handleImport = async () => {
   if (!fileData.value.length) {
@@ -114,7 +139,11 @@ const handleImport = async () => {
       closeDialog();
     } else {
       // 添加安全检查，确保res.data和res.data.failed存在
-      if (res.data && Array.isArray(res.data.failed) && res.data.failed.length > 0) {
+      if (
+        res.data &&
+        Array.isArray(res.data.failed) &&
+        res.data.failed.length > 0
+      ) {
         // 显示详细的错误信息
         let htmlContent = `<div style="text-align: left;">
           <div style="color: #F56C6C; margin-bottom: 10px;">批量入库失败：</div>
@@ -127,8 +156,8 @@ const handleImport = async () => {
         res.data.failed.forEach((item: any) => {
           htmlContent += `
             <tr>
-              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.goods_url || '-'}</td>
-              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.reason || '未知错误'}</td>
+              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.goods_url || "-"}</td>
+              <td style="padding: 8px; border: 1px solid #EBEEF5;">${item.reason || "未知错误"}</td>
             </tr>`;
         });
 
@@ -155,6 +184,8 @@ const handleImport = async () => {
 const closeDialog = () => {
   dialogVisible.value = false;
   fileData.value = [];
+  form.warehouse_id = "";
+  form.warehouse_name = "";
 };
 </script>
 
