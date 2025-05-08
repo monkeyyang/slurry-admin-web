@@ -84,7 +84,7 @@ const closeDialog = () => {
   <el-dialog
     :model-value="visible"
     title="批量导入URL"
-    width="600px"
+    width="760px"
     :destroy-on-close="true"
     @update:model-value="val => emit('update:visible', val)"
   >

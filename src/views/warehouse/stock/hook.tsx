@@ -1,4 +1,4 @@
-import { reactive, ref } from "vue";
+import { reactive, ref, h } from "vue";
 import { Delete, Check, Money, InfoFilled } from "@element-plus/icons-vue";
 import { matchForecastApi } from "@/api/warehouse/stock";
 import {
@@ -15,6 +15,7 @@ import type {
 import type { FormInstance } from "element-plus";
 import { ElMessageBox, ElMessage } from "element-plus";
 import { getWarehouseOptionsWithCountry } from "@/api/warehouse/index";
+import { hasPerms } from "@/utils/auth"; // 导入权限检查函数
 
 export function useHook() {
   // 搜索表单
@@ -68,8 +69,12 @@ export function useHook() {
 
   const selectedRows = ref([]);
 
+  // 添加结算相关状态和方法
+  const settlementDialogVisible = ref(false);
+  const currentSettlementRow = ref<any>({});
+
   // 表格列定义
-  const columns = [
+  const columns: TableColumnList = [
     {
       type: "selection",
       width: 55,
@@ -96,8 +101,13 @@ export function useHook() {
       width: 120
     },
     {
-      label: "UPC/IMEI",
-      prop: "upcOrImei",
+      label: "UPC",
+      prop: "upc",
+      width: 120
+    },
+    {
+      label: "IMEI",
+      prop: "imei",
       width: 120
     },
     {
@@ -123,6 +133,27 @@ export function useHook() {
         </div>
       )
     },
+    ...(hasPerms(["stock:settle:money"])
+      ? [
+          {
+            label: "结算金额",
+            prop: "settle_money",
+            width: 120,
+            cellRenderer: ({ row }) => (
+              <div class="flex items-center gap-2">{row.settle_money}</div>
+            )
+          }
+        ]
+      : []),
+    ...(hasPerms(["stock:settle:money"])
+      ? [
+          {
+            label: "备注",
+            prop: "remark",
+            width: 120
+          }
+        ]
+      : []),
     {
       label: "状态",
       prop: "status",
@@ -157,7 +188,11 @@ export function useHook() {
             </el-button>
           )}
           {row.status === 2 && (
-            <el-button link type="success" onClick={() => handleSettle(row)}>
+            <el-button
+              link
+              type="success"
+              onClick={() => handleSettlement(row)}
+            >
               <el-icon>
                 <Money />
               </el-icon>
@@ -314,18 +349,9 @@ export function useHook() {
   };
 
   // 结算
-  const handleSettle = async (row: StockItem) => {
-    try {
-      await ElMessageBox.confirm("确认要结算该商品吗？", "提示", {
-        type: "warning"
-      });
-
-      await settleStockApi(row.id);
-      ElMessage.success("结算成功");
-      getList();
-    } catch (error) {
-      console.error("结算失败", error);
-    }
+  const handleSettlement = (row: any) => {
+    currentSettlementRow.value = row;
+    settlementDialogVisible.value = true;
   };
 
   // 查看客户预报详情
@@ -361,7 +387,8 @@ export function useHook() {
       forecast_id: "",
       goodsName: "",
       trackingNo: "",
-      upcOrImei: "",
+      upc: "",
+      imei: "",
       warehouseId: "",
       warehouseName: "",
       matched: false,
@@ -453,7 +480,7 @@ export function useHook() {
     detailDialogVisible,
     customerOrderDetail,
     handleConfirmStockIn,
-    handleSettle,
+    handleSettlement,
     handleViewDetail,
     handleMatch,
     storageDialogVisible,
@@ -461,6 +488,8 @@ export function useHook() {
     handleStorage,
     selectedRows,
     handleDelete,
-    handleBatchDelete
+    handleBatchDelete,
+    settlementDialogVisible,
+    currentSettlementRow
   };
 }

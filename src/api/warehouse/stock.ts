@@ -44,8 +44,12 @@ export const getForecastDetailApi = (id: number | string) => {
 };
 
 // 结算库存
-export const settleStockApi = (id: number | string) => {
-  return http.request("post", `/warehouse/stock/settle/${id}`);
+export const settleStockApi = (data: {
+  id: string | number;
+  settle_money: number;
+  remark?: string;
+}) => {
+  return http.request("post", "/warehouse/stock/settle", { data });
 };
 
 // 检查快递单号是否已存在

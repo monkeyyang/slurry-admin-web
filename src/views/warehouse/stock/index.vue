@@ -143,6 +143,15 @@
                 >
                   删除
                 </el-button>
+                <el-button
+                  v-if="hasPerms(['stock:settle']) && row.status === 2"
+                  type="success"
+                  link
+                  :icon="Money"
+                  @click="handleSettlement(row)"
+                >
+                  结算
+                </el-button>
               </template>
             </pure-table>
 
@@ -174,6 +183,13 @@
         v-model:visible="detailDialogVisible"
         :row="currentRow"
       />
+
+      <!-- 添加结算表单组件 -->
+      <settlement-form
+        v-model:visible="settlementDialogVisible"
+        :row="currentSettlementRow"
+        @success="getList"
+      />
     </div>
   </div>
 </template>
@@ -202,6 +218,8 @@ import {
 import Document from "@iconify-icons/ep/document";
 // 引入更具体的Excel图标
 import ExcelFile from "@iconify-icons/ri/file-excel-2-line";
+// 导入结算表单组件
+import SettlementForm from "./settlement-form.vue";
 
 const statusMap = {
   "1": { type: "info", label: "待入库" },
@@ -236,7 +254,10 @@ const {
   storageDialogTitle,
   handleDelete,
   handleBatchDelete,
-  selectedRows
+  selectedRows,
+  settlementDialogVisible,
+  currentSettlementRow,
+  handleSettlement
 } = useHook();
 
 const editBtnLoading = ref<Record<string | number, boolean>>({});
