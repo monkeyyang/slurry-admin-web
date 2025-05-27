@@ -80,6 +80,13 @@ export interface TradeTemplate {
 
 // 礼品卡充值计划相关类型定义
 
+// 账号密码信息
+export interface AccountCredentials {
+  account: string;
+  password: string;
+  raw?: string; // 原始输入字符串
+}
+
 // 充值计划项
 export interface ChargePlanItem {
   id?: string;
@@ -107,22 +114,24 @@ export type ChargePlanStatus =
 export interface ChargePlan {
   id?: string;
   account: string;
+  password?: string;
   country: string;
-  totalAmount: number;
+  totalAmount: string;
   days: number;
-  multipleBase: number;
-  floatAmount: number;
+  multipleBase: string;
+  floatAmount: string;
   intervalHours: number;
   startTime: string;
   items: ChargePlanItem[];
-  status: ChargePlanStatus;
+  status: string;
   currentDay?: number;
-  progress?: number;
-  chargedAmount?: number; // 已充值金额
-  groupId?: string; // 所属账号组ID
-  priority?: number; // 账号优先级
-  createdAt?: string;
-  updatedAt?: string;
+  progress: number;
+  chargedAmount: string;
+  groupId?: string;
+  priority: number;
+  wechatRoom?: WechatRoom;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 批量充值计划
@@ -184,4 +193,19 @@ export interface AccountGroup {
   plans?: ChargePlan[]; // 组内的计划
   createdAt?: string;
   updatedAt?: string;
+}
+
+// 微信群组
+export interface WechatRoom {
+  roomId: string;
+  roomName: string;
+  memberCount?: number;
+}
+
+// 微信群组绑定状态
+export interface WechatRoomBindingStatus {
+  enabled: boolean; // 是否启用微信群组绑定
+  autoAssign: boolean; // 是否自动分配群组
+  defaultRoomId?: string; // 默认群组ID
+  maxPlansPerRoom?: number; // 每个群组最大计划数
 }

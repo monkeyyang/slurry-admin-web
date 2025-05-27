@@ -312,3 +312,181 @@ export const updateAutoExecutionSettingsApi = (settings: {
     data: any;
   }>("put", "/trade/gift-exchange/auto-execution/settings", { data: settings });
 };
+
+// 启动充值计划
+export const startChargePlanApi = (id: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: ChargePlan;
+  }>("post", `/trade/gift-exchange/plans/${id}/start`);
+};
+
+// 暂停充值计划
+export const pauseChargePlanApi = (id: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: ChargePlan;
+  }>("post", `/trade/gift-exchange/plans/${id}/pause`);
+};
+
+// 恢复充值计划
+export const resumeChargePlanApi = (id: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: ChargePlan;
+  }>("post", `/trade/gift-exchange/plans/${id}/resume`);
+};
+
+// 执行单个计划项
+export const executeChargePlanItemApi = (itemId: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: any;
+  }>("post", `/trade/gift-exchange/plan-items/${itemId}/execute`);
+};
+
+// 批量操作计划
+export const batchOperatePlansApi = (data: {
+  action: string;
+  planIds: string[];
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      successCount: number;
+      failCount: number;
+      results: any[];
+    };
+  }>("post", "/trade/gift-exchange/plans/batch-operate", { data });
+};
+
+// ========== 微信群组绑定状态管理接口 ==========
+
+// 获取微信群组绑定状态
+export const getWechatRoomBindingStatusApi = () => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      enabled: boolean;
+      autoAssign: boolean;
+      defaultRoomId?: string;
+      maxPlansPerRoom?: number;
+    };
+  }>("get", "/trade/gift-exchange/wechat-room-binding/status");
+};
+
+// 更新微信群组绑定状态
+export const updateWechatRoomBindingStatusApi = (data: {
+  enabled: boolean;
+  autoAssign?: boolean;
+  defaultRoomId?: string;
+  maxPlansPerRoom?: number;
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: any;
+  }>("put", "/trade/gift-exchange/wechat-room-binding/status", { data });
+};
+
+// 获取微信群组列表
+export const getWechatRoomsApi = (params?: any) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      list: Array<{
+        id: string;
+        roomId: string;
+        roomName: string;
+        memberCount?: number;
+        isActive?: boolean;
+        planCount?: number; // 当前绑定的计划数量
+      }>;
+      total: number;
+    };
+  }>("get", "/trade/gift-exchange/wechat-rooms", { params });
+};
+
+// 绑定计划到微信群组
+export const bindPlanToWechatRoomApi = (planId: string, roomId: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: any;
+  }>("post", `/trade/gift-exchange/plans/${planId}/bind-room`, {
+    data: { roomId }
+  });
+};
+
+// 解绑计划的微信群组
+export const unbindPlanFromWechatRoomApi = (planId: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: any;
+  }>("post", `/trade/gift-exchange/plans/${planId}/unbind-room`);
+};
+
+// 批量绑定计划到微信群组
+export const batchBindPlansToWechatRoomApi = (data: {
+  roomId: string;
+  planIds: string[];
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      successCount: number;
+      failCount: number;
+      results: any[];
+    };
+  }>("post", "/trade/gift-exchange/wechat-room-binding/batch-bind", { data });
+};
+
+// 批量解绑计划的微信群组
+export const batchUnbindPlansFromWechatRoomApi = (planIds: string[]) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      successCount: number;
+      failCount: number;
+      results: any[];
+    };
+  }>("post", "/trade/gift-exchange/wechat-room-binding/batch-unbind", {
+    data: { planIds }
+  });
+};
+
+// 获取微信群组执行统计
+export const getWechatRoomStatsApi = (roomId?: string) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      totalRooms: number;
+      activeRooms: number;
+      totalPlans: number;
+      activePlans: number;
+      completedPlans: number;
+      roomStats: Array<{
+        roomId: string;
+        roomName: string;
+        planCount: number;
+        completedCount: number;
+        totalAmount: number;
+        chargedAmount: number;
+        progress: number;
+      }>;
+    };
+  }>("get", "/trade/gift-exchange/wechat-room-binding/stats", {
+    params: roomId ? { roomId } : undefined
+  });
+};

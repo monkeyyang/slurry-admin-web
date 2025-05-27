@@ -12,16 +12,6 @@ import {
 } from "@/api/trade/itunes";
 
 export function useTradeForm() {
-  // 国家选项
-  const countries = [
-    { value: "CAD", label: "iTunes CAD" },
-    { value: "USD", label: "iTunes USD" },
-    { value: "GBP", label: "iTunes GBP" },
-    { value: "AUD", label: "iTunes AUD" },
-    { value: "EUR", label: "iTunes EUR" },
-    { value: "JPY", label: "iTunes JPY" }
-  ];
-
   // 多国家配置列表
   const countryConfigs = ref<CountryTradeConfig[]>([]);
 
@@ -107,7 +97,7 @@ export function useTradeForm() {
   const formRef = ref();
 
   // 当前编辑的表单数据
-  const form = ref<CountryTradeConfig>(createEmptyConfig("CAD", "加拿大"));
+  const form = ref<CountryTradeConfig>(createEmptyConfig("", ""));
 
   // 预设模板列表
   const templates = ref<any[]>([]);
@@ -172,21 +162,7 @@ export function useTradeForm() {
 
   // 添加新国家配置
   const addCountryConfig = () => {
-    const existingCountries = countryConfigs.value.map(c => c.country);
-    const availableCountries = countries.filter(
-      c => !existingCountries.includes(c.value)
-    );
-
-    if (availableCountries.length === 0) {
-      ElMessage.warning("已添加所有支持的国家");
-      return;
-    }
-
-    const country = availableCountries[0];
-    form.value = createEmptyConfig(
-      country.value,
-      country.label.replace("iTunes ", "")
-    );
+    form.value = createEmptyConfig("", "");
     currentEditingId.value = "";
   };
 
@@ -248,11 +224,14 @@ export function useTradeForm() {
       text += "\n";
 
       // 快卡卡图备注
-      config.fastCard[CardType.IMAGE].remarks.forEach(remark => {
-        if (remark.trim()) {
-          text += `#${remark.trim()}\n`;
-        }
-      });
+      if (config.fastCard[CardType.IMAGE].remarks.length > 0) {
+        text += config.fastCard[CardType.IMAGE].remarks
+          .filter(r => r.trim())
+          .join("\n");
+        text += "\n";
+      }
+
+      text += "————————————\n";
     }
 
     // 快卡信息 - 卡密
@@ -269,19 +248,20 @@ export function useTradeForm() {
       text += "\n";
 
       // 快卡卡密备注
-      config.fastCard[CardType.CODE].remarks.forEach(remark => {
-        if (remark.trim()) {
-          text += `#${remark.trim()}\n`;
-        }
-      });
-    }
+      if (config.fastCard[CardType.CODE].remarks.length > 0) {
+        text += config.fastCard[CardType.CODE].remarks
+          .filter(r => r.trim())
+          .join("\n");
+        text += "\n";
+      }
 
-    text += "————————————\n";
+      text += "————————————\n";
+    }
 
     // 慢卡信息 - 卡图
     if (config.slowCard[CardType.IMAGE].enabled) {
       text += `【${config.country} ${config.countryName}】慢加 卡图\n`;
-      text += `【${config.slowCard[CardType.IMAGE].rate.toFixed(2)} 】${config.slowCard[CardType.IMAGE].minAmount}-${config.slowCard[CardType.IMAGE].maxAmount}`;
+      text += `【${config.slowCard[CardType.IMAGE].rate.toFixed(2)}】${config.slowCard[CardType.IMAGE].minAmount}-${config.slowCard[CardType.IMAGE].maxAmount}`;
 
       if (config.slowCard[CardType.IMAGE].amountConstraint === "multiple") {
         text += `（${config.slowCard[CardType.IMAGE].multipleBase}倍数）`;
@@ -291,23 +271,26 @@ export function useTradeForm() {
 
       text += "\n";
 
-      // 次要汇率
+      // 次要汇率信息
       if (config.secondaryRateEnabled) {
-        text += `【${config.secondaryRate.toFixed(2)} 】${config.secondaryMinAmount}+ ${config.secondaryRemark}\n`;
+        text += `【${config.secondaryRate.toFixed(2)}】${config.secondaryMinAmount}+ ${config.secondaryRemark}\n`;
       }
 
       // 慢卡卡图备注
-      config.slowCard[CardType.IMAGE].remarks.forEach(remark => {
-        if (remark.trim()) {
-          text += `#${remark.trim()}\n`;
-        }
-      });
+      if (config.slowCard[CardType.IMAGE].remarks.length > 0) {
+        text += config.slowCard[CardType.IMAGE].remarks
+          .filter(r => r.trim())
+          .join("\n");
+        text += "\n";
+      }
+
+      text += "————————————\n";
     }
 
     // 慢卡信息 - 卡密
     if (config.slowCard[CardType.CODE].enabled) {
       text += `【${config.country} ${config.countryName}】慢加 卡密\n`;
-      text += `【${config.slowCard[CardType.CODE].rate.toFixed(2)} 】${config.slowCard[CardType.CODE].minAmount}-${config.slowCard[CardType.CODE].maxAmount}`;
+      text += `【${config.slowCard[CardType.CODE].rate.toFixed(2)}】${config.slowCard[CardType.CODE].minAmount}-${config.slowCard[CardType.CODE].maxAmount}`;
 
       if (config.slowCard[CardType.CODE].amountConstraint === "multiple") {
         text += `（${config.slowCard[CardType.CODE].multipleBase}倍数）`;
@@ -318,21 +301,21 @@ export function useTradeForm() {
       text += "\n";
 
       // 慢卡卡密备注
-      config.slowCard[CardType.CODE].remarks.forEach(remark => {
-        if (remark.trim()) {
-          text += `#${remark.trim()}\n`;
-        }
-      });
+      if (config.slowCard[CardType.CODE].remarks.length > 0) {
+        text += config.slowCard[CardType.CODE].remarks
+          .filter(r => r.trim())
+          .join("\n");
+        text += "\n";
+      }
+
+      text += "————————————\n";
     }
 
-    text += "————————————\n";
-
     // 通用备注
-    config.commonRemarks.forEach(remark => {
-      if (remark.trim()) {
-        text += `#${remark.trim()}\n`;
-      }
-    });
+    if (config.commonRemarks.length > 0) {
+      text += config.commonRemarks.filter(r => r.trim()).join("\n");
+      text += "\n";
+    }
 
     previewText.value = text;
     return text;
@@ -341,52 +324,50 @@ export function useTradeForm() {
   // 复制文本
   const copyText = () => {
     if (!previewText.value) {
-      ElMessage.warning("请先生成交易文本");
+      ElMessage.warning("请先生成预览内容");
       return;
     }
 
-    navigator.clipboard
-      .writeText(previewText.value)
-      .then(() => {
-        ElMessage.success("复制成功");
-      })
-      .catch(() => {
-        ElMessage.error("复制失败，请手动复制");
-      });
+    try {
+      navigator.clipboard.writeText(previewText.value);
+      ElMessage.success("复制成功");
+    } catch (error) {
+      ElMessage.error("复制失败，请手动复制");
+      console.error("复制失败", error);
+    }
   };
 
   // 保存为模板
   const saveAsTemplate = async (name: string) => {
     try {
-      await saveTemplateApi(name, [form.value]);
-      ElMessage.success(`模板"${name}"保存成功`);
+      await saveTemplateApi({
+        name,
+        config: JSON.stringify(form.value)
+      });
+      ElMessage.success("模板保存成功");
       loadTemplates();
       return true;
     } catch (error) {
       console.error("保存模板失败", error);
+      ElMessage.error("保存模板失败");
       return false;
     }
   };
 
-  // 初始化加载
+  // 初始化
   const init = () => {
     loadCountryConfigs();
     loadTemplates();
   };
 
-  // 初始加载
+  // 初始化加载
   init();
 
   return {
-    countries,
+    countries: [], // 为了兼容性保留此字段，但不再使用
     formRef,
     form,
     previewText,
-    templates,
-    currentTemplate,
-    loading,
-    countryConfigs,
-    currentEditingId,
     addRemark,
     removeRemark,
     generatePost,
@@ -397,6 +378,9 @@ export function useTradeForm() {
     editCountryConfig,
     deleteCountryConfig,
     saveCurrentConfig,
-    CardType
+    CardType,
+    countryConfigs,
+    currentEditingId,
+    loading
   };
 }

@@ -118,13 +118,26 @@
           <el-input v-model="currentGroup.name" placeholder="请输入组名称" />
         </el-form-item>
         <el-form-item label="国家/地区" prop="country">
-          <el-select v-model="currentGroup.country" placeholder="选择国家/地区">
+          <el-select
+            v-model="currentGroup.country"
+            placeholder="选择国家/地区"
+            filterable
+            :loading="countriesLoading"
+            :filter-method="filterCountries"
+          >
             <el-option
-              v-for="item in countries"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+              v-for="item in countriesList"
+              :key="item?.code || item?.id"
+              :value="item?.code || ''"
+              :label="formatCountryLabel(item)"
+            >
+              <div class="country-simple-option">
+                <span>{{ item?.name_zh || item?.code || "" }}</span>
+                <span v-if="item?.name_en" class="country-en-name">
+                  {{ item.name_en }} ({{ item?.code || "" }})
+                </span>
+              </div>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="描述">
@@ -332,7 +345,7 @@
             placeholder="选择状态"
             clearable
           >
-            <el-option label="草稿" value="draft" />
+            <el-option label="待执行" value="draft" />
             <el-option label="进行中" value="processing" />
             <el-option label="已暂停" value="paused" />
             <el-option label="已完成" value="completed" />
@@ -405,17 +418,66 @@ import {
   getAutoExecutionStatusApi,
   updateAutoExecutionSettingsApi
 } from "@/api/trade/gift-exchange";
+import { getCountriesListApi } from "@/api/system/countries";
 import type { AccountGroup, ChargePlan } from "@/api/trade/types";
 
-// 国家选项
-const countries = [
-  { value: "CAD", label: "加拿大" },
-  { value: "USD", label: "美国" },
-  { value: "GBP", label: "英国" },
-  { value: "AUD", label: "澳大利亚" },
-  { value: "EUR", label: "欧洲" },
-  { value: "JPY", label: "日本" }
-];
+// 国家数据
+const countriesList = ref([]);
+const countriesLoading = ref(false);
+
+// 获取国家列表
+const getCountriesList = async () => {
+  countriesLoading.value = true;
+  try {
+    const response = await getCountriesListApi({
+      pageSize: 100, // 获取最多100条国家数据
+      status: "1" // 只获取启用状态的国家
+    });
+
+    if (response && response.code === 0 && response.data) {
+      // 确保数据结构正确
+      countriesList.value = Array.isArray(response.data.data)
+        ? response.data.data.map(item => ({
+            ...item,
+            code: item.code || "",
+            name_zh: item.name_zh || item.code || "",
+            name_en: item.name_en || ""
+          }))
+        : [];
+      console.log(`成功获取${countriesList.value.length}个国家`);
+    } else {
+      console.error("获取国家列表失败:", response);
+      countriesList.value = [];
+    }
+  } catch (error) {
+    console.error("获取国家列表失败:", error);
+    countriesList.value = [];
+  } finally {
+    countriesLoading.value = false;
+  }
+};
+
+// 国家选择器筛选方法
+const filterCountries = (query, item) => {
+  if (!query) return true;
+  if (!item) return false;
+
+  query = query.toLowerCase();
+  return (
+    (item.name_zh && item.name_zh.toLowerCase().includes(query)) ||
+    (item.name_en && item.name_en.toLowerCase().includes(query)) ||
+    (item.code && item.code.toLowerCase().includes(query)) ||
+    (item.code2 && item.code2.toLowerCase().includes(query))
+  );
+};
+
+// 格式化国家标签显示函数
+const formatCountryLabel = item => {
+  if (!item) return "";
+  return item?.name_zh
+    ? `${item.name_zh} (${item?.name_en || ""})`
+    : item?.code || "";
+};
 
 // 加载状态
 const loading = ref(false);
@@ -430,7 +492,7 @@ const editDialogVisible = ref(false);
 const groupFormRef = ref();
 const currentGroup = ref<AccountGroup>({
   name: "",
-  country: "CAD",
+  country: "",
   description: "",
   totalTargetAmount: 0,
   autoSwitch: false,
@@ -486,7 +548,7 @@ const getStatusText = (status: string) => {
     case "completed":
       return "完成";
     case "draft":
-      return "草稿";
+      return "待执行";
     case "processing":
       return "进行中";
     case "cancelled":
@@ -533,7 +595,7 @@ const loadAccountGroups = async () => {
 const handleCreateGroup = () => {
   currentGroup.value = {
     name: "",
-    country: "CAD",
+    country: "",
     description: "",
     totalTargetAmount: 0,
     autoSwitch: false,
@@ -800,6 +862,7 @@ const saveAutoSettings = async () => {
 
 // 页面加载时初始化
 onMounted(() => {
+  getCountriesList();
   loadAccountGroups();
 });
 </script>
@@ -860,5 +923,16 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+.country-simple-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.country-en-name {
+  color: #8492a6;
+  font-size: 13px;
 }
 </style>

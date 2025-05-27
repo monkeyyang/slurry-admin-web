@@ -213,31 +213,6 @@
       </div>
     </el-card>
 
-    <!-- 账号预览 -->
-    <el-card v-if="parsedAccounts.length > 0" shadow="hover" class="mb-4">
-      <template #header>
-        <div class="card-header">
-          <span>账号预览</span>
-          <div class="header-info">
-            <el-tag type="success"
-              >共 {{ parsedAccounts.length }} 个账号</el-tag
-            >
-          </div>
-        </div>
-      </template>
-
-      <el-table :data="parsedAccounts" style="width: 100%" border size="small">
-        <el-table-column type="index" label="序号" width="80" />
-        <el-table-column prop="account" label="账号" min-width="150" />
-        <el-table-column prop="password" label="密码" min-width="150">
-          <template #default="scope">
-            <span class="password-display">{{ scope.row.password }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="raw" label="原始输入" min-width="200" />
-      </el-table>
-    </el-card>
-
     <!-- 充值计划预览 -->
     <el-card v-if="chargePlan.length > 0" shadow="hover">
       <template #header>
@@ -312,7 +287,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   InfoFilled,
@@ -330,11 +305,7 @@ import {
   exportPlanApi
 } from "@/api/trade/gift-exchange";
 import { getCountriesListApi } from "@/api/system/countries";
-import type {
-  ChargePlanItem,
-  ChargePlan,
-  AccountCredentials
-} from "@/api/trade/types";
+import type { ChargePlanItem, ChargePlan } from "@/api/trade/types";
 
 // 国家数据
 const countriesList = ref([]);
@@ -415,52 +386,11 @@ const form = reactive({
 // 充值计划
 const chargePlan = ref<ChargePlanItem[]>([]);
 
-// 解析后的账号列表
-const parsedAccounts = ref<AccountCredentials[]>([]);
-
 // 模板相关
 const saveTemplateDialogVisible = ref(false);
 const loadTemplateDialogVisible = ref(false);
 const templateName = ref("");
 const templateList = ref<any[]>([]);
-
-// 解析账号密码字符串
-const parseAccountPassword = (
-  line: string
-): { account: string; password: string } | null => {
-  if (!line || !line.trim()) return null;
-
-  // 使用正则表达式分割，支持多个空格
-  const parts = line.trim().split(/\s+/);
-
-  if (parts.length < 2) {
-    return null; // 格式不正确
-  }
-
-  return {
-    account: parts[0],
-    password: parts.slice(1).join(" ") // 如果密码中包含空格，重新拼接
-  };
-};
-
-// 验证账号密码格式
-const validateAccountFormat = (
-  accounts: string[]
-): { valid: string[]; invalid: string[] } => {
-  const valid: string[] = [];
-  const invalid: string[] = [];
-
-  accounts.forEach(line => {
-    const parsed = parseAccountPassword(line);
-    if (parsed) {
-      valid.push(line);
-    } else {
-      invalid.push(line);
-    }
-  });
-
-  return { valid, invalid };
-};
 
 // 文件上传处理
 const handleFileChange = (file: any) => {
@@ -470,81 +400,28 @@ const handleFileChange = (file: any) => {
     const content = e.target?.result as string;
     if (content) {
       // 将文件内容按行分割，过滤空行
-      const lines = content
+      const accounts = content
         .split(/\r?\n/)
         .map(line => line.trim())
         .filter(line => line.length > 0);
 
-      // 验证格式
-      const { valid, invalid } = validateAccountFormat(lines);
-
-      if (invalid.length > 0) {
-        ElMessage.warning(`发现 ${invalid.length} 行格式不正确的数据，已忽略`);
-        console.warn("格式不正确的行:", invalid);
-      }
-
-      form.batchAccounts = valid.join("\n");
-      ElMessage.success(`成功读取 ${valid.length} 个账号`);
+      form.batchAccounts = accounts.join("\n");
+      ElMessage.success(`成功读取 ${accounts.length} 个账号`);
     }
   };
   reader.readAsText(file.raw);
 };
 
-// 更新账号预览
-const updateAccountsPreview = () => {
-  parsedAccounts.value = [];
-
-  const accounts = getAccounts();
-  accounts.forEach(line => {
-    const parsed = parseAccountPassword(line);
-    if (parsed) {
-      parsedAccounts.value.push({
-        account: parsed.account,
-        password: parsed.password,
-        raw: line
-      });
-    }
-  });
-};
-
-// 监听表单变化，更新账号预览
-watch(
-  [() => form.account, () => form.batchAccounts, () => form.importType],
-  () => {
-    updateAccountsPreview();
-  },
-  { immediate: true }
-);
-
 // 获取账号列表
 const getAccounts = (): string[] => {
   if (form.importType === "manual") {
-    if (!form.account) return [];
-
-    // 验证单个账号格式
-    const parsed = parseAccountPassword(form.account);
-    if (!parsed) {
-      ElMessage.error("账号格式不正确，请使用：账号 密码");
-      return [];
-    }
-
-    return [form.account];
+    return form.account ? [form.account] : [];
   } else {
     // 批量账号和文件导入都通过batchAccounts字段处理
-    const lines = form.batchAccounts
+    return form.batchAccounts
       .split(/\r?\n/)
       .map(line => line.trim())
       .filter(line => line.length > 0);
-
-    // 验证格式
-    const { valid, invalid } = validateAccountFormat(lines);
-
-    if (invalid.length > 0) {
-      ElMessage.warning(`发现 ${invalid.length} 行格式不正确的数据，将被忽略`);
-      console.warn("格式不正确的行:", invalid);
-    }
-
-    return valid;
   }
 };
 
@@ -724,6 +601,7 @@ const loadTemplates = async () => {
 // 使用模板
 const loadTemplate = (template: any) => {
   form.country = template.country;
+  // 确保所有数值类型字段都使用Number()转换，避免字符串类型错误
   form.totalAmount = Number(template.totalAmount);
   form.days = Number(template.days);
   form.multipleBase = Number(template.multipleBase);
@@ -838,13 +716,5 @@ onMounted(() => {
   font-size: 12px;
   color: #909399;
   margin-top: 5px;
-}
-
-.password-display {
-  font-family: "Courier New", monospace;
-  background-color: #f5f7fa;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 13px;
 }
 </style>

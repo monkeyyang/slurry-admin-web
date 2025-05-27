@@ -1,8 +1,19 @@
-import { PaginationProps, TableColumn } from "@pureadmin/table";
-import { Sort } from "element-plus";
+import type { PaginationProps, TableColumn } from "@pureadmin/table";
+import type { Sort } from "element-plus";
 import { utils, writeFile } from "xlsx";
 import { message } from "./message";
 import { pinyin } from "pinyin-pro";
+
+/**
+ * 生成UUID
+ */
+export function getUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export class CommonUtils {
   static getBeginTimeSafely(timeRange: string[]): string {
@@ -137,5 +148,5 @@ export class CommonUtils {
   }
 
   // 私有构造函数，防止类被实例化
-  private constructor() { }
+  private constructor() {}
 }

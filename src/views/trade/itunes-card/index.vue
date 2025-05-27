@@ -140,13 +140,23 @@
                   v-model="form.country"
                   placeholder="选择国家/地区"
                   :disabled="!!currentEditingId"
+                  filterable
+                  :loading="countriesLoading"
+                  :filter-method="filterCountries"
                 >
                   <el-option
-                    v-for="item in countries"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                    v-for="item in countriesList"
+                    :key="item?.code || item?.id"
+                    :value="item?.code || ''"
+                    :label="formatCountryLabel(item)"
+                  >
+                    <div class="country-simple-option">
+                      <span>{{ item?.name_zh || item?.code || "" }}</span>
+                      <span v-if="item?.name_en" class="country-en-name">
+                        {{ item.name_en }} ({{ item?.code || "" }})
+                      </span>
+                    </div>
+                  </el-option>
                 </el-select>
               </el-form-item>
             </el-col>
@@ -664,7 +674,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import {
   Delete,
   Plus,
@@ -679,6 +689,65 @@ import {
 import { ElMessage } from "element-plus";
 import { useTradeForm } from "./hook";
 import type { CountryTradeConfig } from "@/api/trade/types";
+import { getCountriesListApi } from "@/api/system/countries";
+
+// 国家数据
+const countriesList = ref([]);
+const countriesLoading = ref(false);
+
+// 获取国家列表
+const getCountriesList = async () => {
+  countriesLoading.value = true;
+  try {
+    const response = await getCountriesListApi({
+      pageSize: 100, // 获取最多100条国家数据
+      status: "1" // 只获取启用状态的国家
+    });
+
+    if (response && response.code === 0 && response.data) {
+      // 确保数据结构正确
+      countriesList.value = Array.isArray(response.data.data)
+        ? response.data.data.map(item => ({
+            ...item,
+            code: item.code || "",
+            name_zh: item.name_zh || item.code || "",
+            name_en: item.name_en || ""
+          }))
+        : [];
+      console.log(`成功获取${countriesList.value.length}个国家`);
+    } else {
+      console.error("获取国家列表失败:", response);
+      countriesList.value = [];
+    }
+  } catch (error) {
+    console.error("获取国家列表失败:", error);
+    countriesList.value = [];
+  } finally {
+    countriesLoading.value = false;
+  }
+};
+
+// 国家选择器筛选方法
+const filterCountries = (query, item) => {
+  if (!query) return true;
+  if (!item) return false;
+
+  query = query.toLowerCase();
+  return (
+    (item.name_zh && item.name_zh.toLowerCase().includes(query)) ||
+    (item.name_en && item.name_en.toLowerCase().includes(query)) ||
+    (item.code && item.code.toLowerCase().includes(query)) ||
+    (item.code2 && item.code2.toLowerCase().includes(query))
+  );
+};
+
+// 格式化国家标签显示函数
+const formatCountryLabel = item => {
+  if (!item) return "";
+  return item?.name_zh
+    ? `${item.name_zh} (${item?.name_en || ""})`
+    : item?.code || "";
+};
 
 // 使用自定义hook
 const {
@@ -701,6 +770,12 @@ const {
   currentEditingId,
   loading
 } = useTradeForm();
+
+// 组件挂载时加载国家列表
+onMounted(() => {
+  getCountriesList();
+  loadCountryConfigs();
+});
 
 // 计算属性：是否显示编辑表单
 const showEditForm = computed(() => form.value.country);
@@ -829,5 +904,16 @@ const handleSaveTemplate = async () => {
 /* 移除原有分隔线 */
 .el-divider {
   display: none;
+}
+
+.country-simple-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.country-en-name {
+  color: #8492a6;
+  font-size: 13px;
 }
 </style>
