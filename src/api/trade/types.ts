@@ -31,6 +31,8 @@ export interface CountryTradeConfig {
   id?: string;
   country: string;
   countryName: string;
+  group: string; // 分组ID
+  groupName: string; // 分组名称
 
   // 快卡设置
   fastCard: CardTypeConfig;
@@ -84,6 +86,7 @@ export interface TradeTemplate {
 export interface AccountCredentials {
   account: string;
   password: string;
+  apiUrl?: string; // API链接
   raw?: string; // 原始输入字符串
 }
 
@@ -115,6 +118,7 @@ export interface ChargePlan {
   id?: string;
   account: string;
   password?: string;
+  apiUrl?: string; // API链接
   country: string;
   totalAmount: string;
   days: number;
@@ -127,6 +131,7 @@ export interface ChargePlan {
   currentDay?: number;
   progress: number;
   chargedAmount: string;
+  dailyRemainingQuota?: string; // 当日剩余可兑换额度
   groupId?: string;
   priority: number;
   wechatRoom?: WechatRoom;

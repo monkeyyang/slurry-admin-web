@@ -29,6 +29,8 @@ export function useTradeForm() {
     return {
       country,
       countryName,
+      group: "", // 分组ID
+      groupName: "", // 分组名称
 
       // 快卡设置
       fastCard: {
@@ -101,7 +103,6 @@ export function useTradeForm() {
 
   // 预设模板列表
   const templates = ref<any[]>([]);
-  const currentTemplate = ref("");
 
   // 预览文本
   const previewText = ref("");
@@ -207,7 +208,7 @@ export function useTradeForm() {
     let text = "";
 
     // 添加标题
-    text += `${config.country} ${config.countryName} ！！！\n`;
+    text += `${config.country} ${config.countryName} ${config.groupName ? `【${config.groupName}】` : ""} ！！！\n`;
     text += "————————————\n";
 
     // 快卡信息 - 卡图
@@ -340,10 +341,7 @@ export function useTradeForm() {
   // 保存为模板
   const saveAsTemplate = async (name: string) => {
     try {
-      await saveTemplateApi({
-        name,
-        config: JSON.stringify(form.value)
-      });
+      await saveTemplateApi(name, [form.value]);
       ElMessage.success("模板保存成功");
       loadTemplates();
       return true;

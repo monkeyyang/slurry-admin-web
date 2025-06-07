@@ -168,6 +168,24 @@
                 />
               </el-form-item>
             </el-col>
+            <el-col :span="12">
+              <el-form-item label="分组">
+                <el-select
+                  v-model="form.group"
+                  placeholder="选择分组"
+                  filterable
+                  :loading="groupsLoading"
+                  @change="handleGroupChange"
+                >
+                  <el-option
+                    v-for="item in groupsList"
+                    :key="item?.id"
+                    :value="item?.id"
+                    :label="item?.name"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
           </el-row>
         </el-card>
 
@@ -690,10 +708,41 @@ import { ElMessage } from "element-plus";
 import { useTradeForm } from "./hook";
 import type { CountryTradeConfig } from "@/api/trade/types";
 import { getCountriesListApi } from "@/api/system/countries";
+import { getGroupsListApi } from "@/api/system/groups";
 
 // 国家数据
 const countriesList = ref([]);
 const countriesLoading = ref(false);
+
+// 分组数据
+const groupsList = ref([]);
+const groupsLoading = ref(false);
+
+// 获取分组列表
+const getGroupsList = async () => {
+  groupsLoading.value = true;
+  try {
+    const response = await getGroupsListApi({
+      pageSize: 100,
+      status: "1"
+    });
+
+    if (response && response.code === 0 && response.data) {
+      groupsList.value = Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
+      console.log(`成功获取${groupsList.value.length}个分组`);
+    } else {
+      console.error("获取分组列表失败:", response);
+      groupsList.value = [];
+    }
+  } catch (error) {
+    console.error("获取分组列表失败:", error);
+    groupsList.value = [];
+  } finally {
+    groupsLoading.value = false;
+  }
+};
 
 // 获取国家列表
 const getCountriesList = async () => {
@@ -771,14 +820,17 @@ const {
   loading
 } = useTradeForm();
 
-// 组件挂载时加载国家列表
+// 组件挂载时加载国家列表和分组列表
 onMounted(() => {
   getCountriesList();
+  getGroupsList();
   loadCountryConfigs();
 });
 
 // 计算属性：是否显示编辑表单
-const showEditForm = computed(() => form.value.country);
+const showEditForm = computed(
+  () => currentEditingId.value === "" || !!currentEditingId.value
+);
 
 // 模板相关
 const saveTemplateDialogVisible = ref(false);
@@ -796,7 +848,66 @@ const editCountryConfig = (config: CountryTradeConfig) => {
 
 // 添加国家配置
 const addCountryConfig = () => {
-  initAddCountryConfig();
+  form.value = {
+    country: "",
+    countryName: "",
+    group: "",
+    groupName: "",
+    fastCard: {
+      [CardType.IMAGE]: {
+        enabled: true,
+        rate: 3.95,
+        minAmount: 150,
+        maxAmount: 500,
+        amountConstraint: "multiple",
+        multipleBase: 50,
+        remarks: ["连卡只要2张", "要清晰完整卡图", "30分钟赎回不结算"]
+      },
+      [CardType.CODE]: {
+        enabled: true,
+        rate: 3.9,
+        minAmount: 150,
+        maxAmount: 500,
+        amountConstraint: "multiple",
+        multipleBase: 50,
+        remarks: ["卡密即时到账", "卡密须为可激活状态"]
+      }
+    },
+    slowCard: {
+      [CardType.IMAGE]: {
+        enabled: true,
+        rate: 4.05,
+        minAmount: 200,
+        maxAmount: 2000,
+        amountConstraint: "all",
+        multipleBase: 50,
+        remarks: [
+          "代码/电子/卡图同价/连卡要",
+          "使用时间1-3小时",
+          "感染卡/风控/没货=退卡"
+        ]
+      },
+      [CardType.CODE]: {
+        enabled: true,
+        rate: 4.0,
+        minAmount: 200,
+        maxAmount: 2000,
+        amountConstraint: "all",
+        multipleBase: 50,
+        remarks: ["卡密24小时内到账", "卡密须为未使用状态"]
+      }
+    },
+    secondaryRateEnabled: true,
+    secondaryRate: 4.0,
+    secondaryMinAmount: 50,
+    secondaryRemark: "有卡先问",
+    commonRemarks: [
+      "快卡（自用囤号请筛选好质量）",
+      "快卡（每月赎回3次停止合作）",
+      "慢卡、快卡 请备注清楚 ！！！"
+    ]
+  };
+  currentEditingId.value = "";
   previewText.value = "";
 };
 
@@ -839,6 +950,14 @@ const handleSaveTemplate = async () => {
   if (success) {
     saveTemplateDialogVisible.value = false;
     templateName.value = "";
+  }
+};
+
+// 添加分组变更处理函数
+const handleGroupChange = (groupId: string) => {
+  const selectedGroup = groupsList.value.find(group => group.id === groupId);
+  if (selectedGroup) {
+    form.value.groupName = selectedGroup.name;
   }
 };
 </script>
