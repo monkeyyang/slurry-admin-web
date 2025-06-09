@@ -509,42 +509,92 @@
         </el-card>
 
         <!-- 执行计划 -->
-        <el-card>
+        <el-card class="mb-4">
           <template #header>
             <span class="detail-title">执行计划</span>
           </template>
           <el-table :data="viewData.items" border size="small">
             <el-table-column prop="day" label="天数" width="80" />
-            <el-table-column prop="time" label="时间" width="120" />
-            <el-table-column prop="amount" label="金额" width="100" />
+            <el-table-column label="额度限制" width="150">
+              <template #default="scope">
+                <span
+                  v-if="
+                    scope.row.minAmount !== undefined &&
+                    scope.row.maxAmount !== undefined
+                  "
+                >
+                  {{ scope.row.minAmount }}~{{ scope.row.maxAmount }}
+                </span>
+                <span v-else>{{ scope.row.amount || "0.00" }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="已兑换金额" width="120">
+              <template #default="scope">
+                <span class="executed-amount">{{
+                  getExecutedAmount(scope.row)
+                }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="description" label="描述" />
             <el-table-column prop="status" label="状态" width="100">
               <template #default="scope">
-                <el-tag
-                  :type="
-                    scope.row.status === 'completed'
-                      ? 'success'
-                      : scope.row.status === 'failed'
-                        ? 'danger'
-                        : scope.row.status === 'processing'
-                          ? 'warning'
-                          : 'info'
-                  "
-                  size="small"
-                >
-                  {{
-                    scope.row.status === "completed"
-                      ? "已完成"
-                      : scope.row.status === "failed"
-                        ? "失败"
-                        : scope.row.status === "processing"
-                          ? "进行中"
-                          : "等待中"
-                  }}
+                <el-tag :type="getItemStatusType(scope.row)" size="small">
+                  {{ getItemStatusText(scope.row) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="executedAt" label="执行时间" width="150" />
+          </el-table>
+        </el-card>
+
+        <!-- 执行记录 -->
+        <el-card>
+          <template #header>
+            <span class="detail-title">执行记录</span>
+          </template>
+          <el-table
+            v-loading="logsLoading"
+            :data="logsList"
+            border
+            size="small"
+          >
+            <el-table-column prop="day" label="天数" width="80" />
+            <el-table-column prop="action" label="操作" width="120" />
+            <el-table-column prop="details" label="详情">
+              <template #default="scope">
+                <div class="details-cell">
+                  <div
+                    :class="[
+                      'details-content',
+                      { expanded: scope.row._expanded }
+                    ]"
+                  >
+                    {{ scope.row.details }}
+                  </div>
+                  <el-button
+                    v-if="isTextLong(scope.row.details)"
+                    link
+                    size="small"
+                    type="primary"
+                    class="expand-btn"
+                    @click="toggleExpand(scope.row)"
+                  >
+                    {{ scope.row._expanded ? "收起" : "展开" }}
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="scope">
+                <el-tag
+                  :type="scope.row.status === 'success' ? 'success' : 'danger'"
+                  size="small"
+                >
+                  {{ scope.row.status === "success" ? "成功" : "失败" }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createdAt" label="记录时间" width="180" />
           </el-table>
         </el-card>
       </div>
@@ -572,6 +622,7 @@ import {
   batchOperateChargePlansApi,
   getCountriesForChargePlanApi,
   getGroupsForChargePlanApi,
+  getPlanLogsApi,
   type ChargePlanQueryParams
 } from "@/api/trade/charge-plan";
 
@@ -593,6 +644,10 @@ const viewData = ref<ChargePlan | null>(null);
 // 下拉选项
 const countriesList = ref([]);
 const groupsList = ref([]);
+
+// 日志数据
+const logsList = ref([]);
+const logsLoading = ref(false);
 
 // 搜索表单
 const searchForm = reactive({
@@ -746,9 +801,13 @@ const handleBatchAction = async () => {
 };
 
 // 查看计划
-const viewPlan = (plan: ChargePlan) => {
+const viewPlan = async (plan: ChargePlan) => {
   viewData.value = plan;
+  logsList.value = []; // 重置日志列表
   showViewDialog.value = true;
+
+  // 加载计划日志
+  await loadPlanLogs(plan.id!);
 };
 
 // 切换计划状态
@@ -966,6 +1025,7 @@ const resetEditForm = () => {
 
 const resetViewData = () => {
   viewData.value = null;
+  logsList.value = [];
 };
 
 // 加载计划列表
@@ -1196,6 +1256,124 @@ const loadGroups = async () => {
   }
 };
 
+// 加载计划日志
+const loadPlanLogs = async (planId: string) => {
+  logsLoading.value = true;
+  try {
+    const response = await getPlanLogsApi(planId);
+    if (response && response.code === 0) {
+      // 处理分页数据结构
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          // 如果直接是数组
+          logsList.value = response.data.map(item => ({
+            ...item,
+            _expanded: false // 添加展开状态
+          }));
+        } else {
+          // 处理分页结构 {list: [], total: number}
+          const data = response.data as any;
+          if (data.list && Array.isArray(data.list)) {
+            logsList.value = data.list.map(item => ({
+              ...item,
+              _expanded: false // 添加展开状态
+            }));
+          } else {
+            logsList.value = [];
+          }
+        }
+      } else {
+        logsList.value = [];
+      }
+    } else {
+      console.error("获取计划日志失败:", response);
+      logsList.value = [];
+    }
+  } catch (error) {
+    console.error("获取计划日志失败:", error);
+    logsList.value = [];
+  } finally {
+    logsLoading.value = false;
+  }
+};
+
+// 判断文本是否过长
+const isTextLong = (text: string) => {
+  if (!text) return false;
+  return text.length > 100; // 超过100个字符认为过长
+};
+
+// 切换展开状态
+const toggleExpand = (row: any) => {
+  row._expanded = !row._expanded;
+};
+
+// 获取已兑换金额
+const getExecutedAmount = (item: any) => {
+  // 如果有executedAmount字段，直接使用
+  if (item.executedAmount !== undefined) {
+    return item.executedAmount;
+  }
+
+  // 如果没有，但是状态是completed，使用amount
+  if (item.status === "completed" && item.amount) {
+    return item.amount;
+  }
+
+  // 如果有result字段，尝试从中提取金额
+  if (item.result && typeof item.result === "string") {
+    const match = item.result.match(/累计金额[:：]\s*(\d+\.?\d*)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  // 默认返回0.00或-
+  return "0.00";
+};
+
+// 获取项目状态类型
+const getItemStatusType = (item: any) => {
+  // 检查是否已达到最大额度
+  const executedAmount = parseFloat(getExecutedAmount(item)) || 0;
+  const maxAmount = parseFloat(item.maxAmount) || 0;
+
+  if (executedAmount >= maxAmount && maxAmount > 0) {
+    return "success"; // 已完成
+  }
+
+  if (item.status === "completed") {
+    return "success";
+  } else if (item.status === "failed") {
+    return "danger";
+  } else if (item.status === "processing") {
+    return "warning";
+  } else {
+    return "info";
+  }
+};
+
+// 获取项目状态文本
+const getItemStatusText = (item: any) => {
+  // 检查是否已达到最大额度
+  const executedAmount = parseFloat(getExecutedAmount(item)) || 0;
+  const maxAmount = parseFloat(item.maxAmount) || 0;
+
+  if (executedAmount >= maxAmount && maxAmount > 0) {
+    return "已完成";
+  }
+
+  if (item.status === "completed") {
+    return "已完成";
+  } else if (item.status === "failed") {
+    return "失败";
+  } else if (item.status === "processing") {
+    return "进行中";
+  } else {
+    return "等待中";
+  }
+};
+
 // 初始化
 onMounted(async () => {
   // 初始化搜索表单
@@ -1255,6 +1433,11 @@ onMounted(async () => {
   color: #67c23a;
 }
 
+.executed-amount {
+  font-weight: bold;
+  color: #e6a23c;
+}
+
 .pagination-container {
   margin-top: 20px;
   display: flex;
@@ -1307,5 +1490,32 @@ onMounted(async () => {
 .remaining-quota-primary {
   font-weight: bold;
   color: #409eff;
+}
+
+.details-cell {
+  position: relative;
+}
+
+.details-content {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2行高度 */
+  word-break: break-all;
+  transition: max-height 0.3s ease;
+}
+
+.details-content.expanded {
+  display: block;
+  max-height: none;
+  -webkit-line-clamp: unset;
+}
+
+.expand-btn {
+  margin-top: 4px;
+  padding: 0 !important;
+  font-size: 12px;
 }
 </style>

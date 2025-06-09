@@ -144,7 +144,7 @@
         <el-table-column type="expand" width="30">
           <template #default="props">
             <div class="expand-content">
-              <h4>计划详情</h4>
+              <h4>计划详情1</h4>
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="计划ID">
                   {{ props.row.id }}
@@ -161,23 +161,47 @@
               </el-descriptions>
 
               <h4 style="margin-top: 20px">充值明细</h4>
-              <el-table :data="props.row.items" size="small" border>
+              <el-table :data="props.row.items || []" size="small" border>
                 <el-table-column prop="day" label="天数" width="80" />
                 <el-table-column prop="time" label="执行时间" width="180" />
-                <el-table-column prop="amount" label="金额" width="100" />
-                <el-table-column label="浮动范围" width="120">
+                <el-table-column label="额度限制" width="150">
                   <template #default="scope">
-                    {{ scope.row.minAmount }}-{{ scope.row.maxAmount }}
+                    <span
+                      v-if="
+                        scope.row.minAmount !== undefined &&
+                        scope.row.maxAmount !== undefined
+                      "
+                    >
+                      {{ scope.row.minAmount }}~{{ scope.row.maxAmount }}
+                    </span>
+                    <span v-else>{{ scope.row.amount || "0.00" }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="已兑换金额" width="120">
+                  <template #default="scope">
+                    <span class="executed-amount">{{
+                      getExecutedAmount(scope.row)
+                    }}</span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="description" label="说明" />
                 <el-table-column label="执行状态" width="100">
                   <template #default="scope">
                     <el-tag
-                      :type="getExecutionStatusType(scope.row.executionStatus)"
+                      :type="
+                        getExecutionStatusType(
+                          scope.row.executionStatus,
+                          scope.row
+                        )
+                      "
                       size="small"
                     >
-                      {{ getExecutionStatusText(scope.row.executionStatus) }}
+                      {{
+                        getExecutionStatusText(
+                          scope.row.executionStatus,
+                          scope.row
+                        )
+                      }}
                     </el-tag>
                   </template>
                 </el-table-column>
@@ -339,7 +363,7 @@
     >
       <div v-if="currentPlan" class="plan-detail">
         <el-descriptions :column="3" border>
-          <el-descriptions-item label="计划ID">
+          <el-descriptions-item label="计划ID1">
             {{ currentPlan.id }}
           </el-descriptions-item>
           <el-descriptions-item label="账号">
@@ -371,20 +395,40 @@
         </el-descriptions>
 
         <h3 style="margin: 20px 0">执行计划</h3>
-        <el-table :data="currentPlan.items" border>
+        <el-table :data="currentPlan.items || []" border>
           <el-table-column prop="day" label="天数" width="80" />
           <el-table-column prop="time" label="执行时间" width="180" />
-          <el-table-column prop="amount" label="金额" width="100" />
-          <el-table-column label="浮动范围" width="150">
+          <el-table-column label="额度限制" width="150">
             <template #default="scope">
-              {{ scope.row.minAmount }}-{{ scope.row.maxAmount }}
+              <span
+                v-if="
+                  scope.row.minAmount !== undefined &&
+                  scope.row.maxAmount !== undefined
+                "
+              >
+                {{ scope.row.minAmount }}~{{ scope.row.maxAmount }}
+              </span>
+              <span v-else>{{ scope.row.amount || "0.00" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="已兑换金额" width="120">
+            <template #default="scope">
+              <span class="executed-amount">{{
+                getExecutedAmount(scope.row)
+              }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="description" label="说明" />
           <el-table-column label="执行状态" width="120">
             <template #default="scope">
-              <el-tag :type="getExecutionStatusType(scope.row.executionStatus)">
-                {{ getExecutionStatusText(scope.row.executionStatus) }}
+              <el-tag
+                :type="
+                  getExecutionStatusType(scope.row.executionStatus, scope.row)
+                "
+              >
+                {{
+                  getExecutionStatusText(scope.row.executionStatus, scope.row)
+                }}
               </el-tag>
             </template>
           </el-table-column>
@@ -400,6 +444,30 @@
               </el-button>
             </template>
           </el-table-column>
+        </el-table>
+
+        <h3 style="margin: 20px 0">执行记录</h3>
+        <el-table
+          v-loading="logsLoading"
+          :data="logsList || []"
+          border
+          size="small"
+        >
+          <el-table-column prop="day" label="天数" width="80" />
+          <el-table-column prop="time" label="时间" width="150" />
+          <el-table-column prop="action" label="操作" width="120" />
+          <el-table-column prop="details" label="详情" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="scope">
+              <el-tag
+                :type="scope.row.status === 'success' ? 'success' : 'danger'"
+                size="small"
+              >
+                {{ scope.row.status === "success" ? "成功" : "失败" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="记录时间" width="180" />
         </el-table>
       </div>
     </el-dialog>
@@ -504,6 +572,7 @@ import {
   batchBindPlansToWechatRoomApi,
   batchUnbindPlansFromWechatRoomApi
 } from "@/api/trade/gift-exchange";
+import { getPlanLogsApi } from "@/api/trade/charge-plan";
 import { getCountriesListApi } from "@/api/system/countries";
 import type { ChargePlan, ChargePlanItem, WechatRoom } from "@/api/trade/types";
 
@@ -603,6 +672,10 @@ const bindGroupDialogVisible = ref(false);
 const bindGroupForm = reactive({
   roomId: ""
 });
+
+// 日志数据
+const logsList = ref([]);
+const logsLoading = ref(false);
 
 // 搜索微信群组
 const searchWechatRooms = async (query: string) => {
@@ -727,7 +800,17 @@ const getStatusType = (status: string) => {
 };
 
 // 获取执行状态文本
-const getExecutionStatusText = (status: string) => {
+const getExecutionStatusText = (status: string, item?: any) => {
+  // 如果传入了item，检查是否已达到最大额度
+  if (item) {
+    const executedAmount = parseFloat(getExecutedAmount(item)) || 0;
+    const maxAmount = parseFloat(item.maxAmount) || 0;
+
+    if (executedAmount >= maxAmount && maxAmount > 0) {
+      return "已完成";
+    }
+  }
+
   switch (status) {
     case "pending":
       return "待执行";
@@ -743,7 +826,17 @@ const getExecutionStatusText = (status: string) => {
 };
 
 // 获取执行状态类型
-const getExecutionStatusType = (status: string) => {
+const getExecutionStatusType = (status: string, item?: any) => {
+  // 如果传入了item，检查是否已达到最大额度
+  if (item) {
+    const executedAmount = parseFloat(getExecutedAmount(item)) || 0;
+    const maxAmount = parseFloat(item.maxAmount) || 0;
+
+    if (executedAmount >= maxAmount && maxAmount > 0) {
+      return "success";
+    }
+  }
+
   switch (status) {
     case "pending":
       return "info";
@@ -760,8 +853,17 @@ const getExecutionStatusType = (status: string) => {
 
 // 获取进度
 const getProgress = (plan: ChargePlan) => {
-  if (!plan.totalAmount || plan.totalAmount === 0) return 0;
-  return Math.round(((plan.chargedAmount || 0) / plan.totalAmount) * 100);
+  const totalAmount =
+    typeof plan.totalAmount === "string"
+      ? parseFloat(plan.totalAmount)
+      : plan.totalAmount;
+  const chargedAmount =
+    typeof plan.chargedAmount === "string"
+      ? parseFloat(plan.chargedAmount || "0")
+      : plan.chargedAmount || 0;
+
+  if (!totalAmount || totalAmount === 0) return 0;
+  return Math.round((chargedAmount / totalAmount) * 100);
 };
 
 // 获取进度状态
@@ -772,6 +874,30 @@ const getProgressStatus = (plan: ChargePlan) => {
   return "";
 };
 
+// 获取已兑换金额
+const getExecutedAmount = (item: any) => {
+  // 如果有executedAmount字段，直接使用
+  if (item.executedAmount !== undefined) {
+    return item.executedAmount;
+  }
+
+  // 如果没有，但是状态是completed，使用amount
+  if (item.status === "completed" && item.amount) {
+    return item.amount;
+  }
+
+  // 如果有result字段，尝试从中提取金额
+  if (item.result && typeof item.result === "string") {
+    const match = item.result.match(/累计金额[:：]\s*(\d+\.?\d*)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  // 默认返回0.00
+  return "0.00";
+};
+
 // 创建计划
 const handleCreatePlan = () => {
   // 跳转到创建计划页面
@@ -779,9 +905,49 @@ const handleCreatePlan = () => {
 };
 
 // 查看计划
-const handleViewPlan = (plan: ChargePlan) => {
+const handleViewPlan = async (plan: ChargePlan) => {
   currentPlan.value = plan;
+  logsList.value = []; // 重置日志列表
   detailDialogVisible.value = true;
+
+  // 加载计划日志
+  await loadPlanLogs(plan.id!);
+};
+
+// 加载计划日志
+const loadPlanLogs = async (planId: string) => {
+  logsLoading.value = true;
+  try {
+    const response = await getPlanLogsApi(planId);
+    if (response && response.code === 0) {
+      // 处理分页数据结构
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          // 如果直接是数组
+          logsList.value = response.data;
+        } else if (
+          (response.data as any).list &&
+          Array.isArray((response.data as any).list)
+        ) {
+          // 如果是分页结构 {list: [], total: number}
+          logsList.value = (response.data as any).list;
+        } else {
+          // 其他情况设为空数组
+          logsList.value = [];
+        }
+      } else {
+        logsList.value = [];
+      }
+    } else {
+      console.error("获取计划日志失败:", response);
+      logsList.value = [];
+    }
+  } catch (error) {
+    console.error("获取计划日志失败:", error);
+    logsList.value = [];
+  } finally {
+    logsLoading.value = false;
+  }
 };
 
 // 编辑计划
@@ -951,7 +1117,7 @@ const getPlanGroupName = (plan: ChargePlan) => {
 // 绑定到群组
 const handleBindToGroup = (plan: ChargePlan) => {
   currentPlan.value = plan;
-  bindGroupForm.roomId = plan.roomId || "";
+  bindGroupForm.roomId = plan.wechatRoom?.roomId || "";
   bindGroupDialogVisible.value = true;
 };
 
@@ -1098,6 +1264,11 @@ onMounted(() => {
 .text-success {
   color: #67c23a;
   font-weight: bold;
+}
+
+.executed-amount {
+  font-weight: bold;
+  color: #e6a23c;
 }
 
 .batch-content {

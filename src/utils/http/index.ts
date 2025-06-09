@@ -50,6 +50,9 @@ class PureHttp {
   /** 防止重复刷新token */
   private static isRefreshing = false;
 
+  /** 防止重复弹出登录过期提示 */
+  private static isShowingLogoutDialog = false;
+
   /** 初始化配置对象 */
   private static initConfig: PureHttpRequestConfig = {};
 
@@ -213,7 +216,44 @@ class PureHttp {
         .catch(error => {
           // 某些情况网络失效，此时直接进入error流程，所以在这边也进行拦截
           if (error.response && error.response.status >= 500) {
-            message("网络异常", { type: "error" });
+            // 特殊处理：如果是可能因token过期导致的500错误的API
+            const tokenRelatedApis = [
+              "/admin/menu/tree",
+              "/admin/menu/",
+              "/getLoginUserInfo",
+              "/admin/user/",
+              "/admin/role/",
+              "/admin/permission/"
+            ];
+
+            const isTokenRelatedApi = tokenRelatedApis.some(api =>
+              error.config?.url?.includes(api)
+            );
+
+            if (isTokenRelatedApi && !PureHttp.isShowingLogoutDialog) {
+              PureHttp.isShowingLogoutDialog = true;
+              ElMessageBox.confirm(
+                "登录状态已过期，您可以继续留在该页面，或者重新登录",
+                "系统提示",
+                {
+                  confirmButtonText: "重新登录",
+                  cancelButtonText: "取消",
+                  type: "warning"
+                }
+              )
+                .then(() => {
+                  removeToken();
+                  router.push("/login");
+                })
+                .catch(() => {
+                  message("取消重新登录", { type: "info" });
+                })
+                .finally(() => {
+                  PureHttp.isShowingLogoutDialog = false;
+                });
+            } else if (!isTokenRelatedApi) {
+              message("网络异常", { type: "error" });
+            }
           }
 
           if (

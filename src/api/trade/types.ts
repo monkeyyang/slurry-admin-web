@@ -99,6 +99,7 @@ export interface ChargePlanItem {
   amount: number;
   minAmount: number;
   maxAmount: number;
+  executedAmount: number;
   description: string;
   status?: "pending" | "processing" | "completed" | "failed";
   executedAt?: string;
