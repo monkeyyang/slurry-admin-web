@@ -86,7 +86,7 @@ export interface TradeTemplate {
 export interface AccountCredentials {
   account: string;
   password: string;
-  apiUrl?: string; // API链接
+  verifyUrl?: string; // API链接
   raw?: string; // 原始输入字符串
 }
 
@@ -119,7 +119,7 @@ export interface ChargePlan {
   id?: string;
   account: string;
   password?: string;
-  apiUrl?: string; // API链接
+  verifyUrl?: string; // API链接
   country: string;
   totalAmount: string;
   days: number;

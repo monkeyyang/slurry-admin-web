@@ -117,16 +117,16 @@
         <el-table-column label="API链接" width="150">
           <template #default="scope">
             <el-link
-              v-if="scope.row.apiUrl"
-              :href="scope.row.apiUrl"
+              v-if="scope.row.verifyUrl"
+              :href="scope.row.verifyUrl"
               target="_blank"
               type="primary"
               style="font-size: 12px"
             >
               {{
-                scope.row.apiUrl.length > 20
-                  ? scope.row.apiUrl.substring(0, 20) + "..."
-                  : scope.row.apiUrl
+                scope.row.verifyUrl.length > 20
+                  ? scope.row.verifyUrl.substring(0, 20) + "..."
+                  : scope.row.verifyUrl
               }}
             </el-link>
             <span v-else class="text-primary">未设置</span>
@@ -395,11 +395,15 @@
                 <span>{{ viewData.country }}</span>
               </div>
             </el-col>
-            <el-col v-if="viewData.apiUrl" :span="24">
+            <el-col v-if="viewData.verifyUrl" :span="24">
               <div class="detail-item">
                 <label>API链接：</label>
-                <el-link :href="viewData.apiUrl" target="_blank" type="primary">
-                  {{ viewData.apiUrl }}
+                <el-link
+                  :href="viewData.verifyUrl"
+                  target="_blank"
+                  type="primary"
+                >
+                  {{ viewData.verifyUrl }}
                 </el-link>
               </div>
             </el-col>
@@ -908,12 +912,12 @@ const handleAddAccount = async () => {
         if (parts.length >= 2) {
           const [account, password, ...apiParts] = parts;
           // API链接可选，如果有多个部分则组合为API链接
-          const apiUrl = apiParts.length > 0 ? apiParts.join(" ") : null;
+          const verifyUrl = apiParts.length > 0 ? apiParts.join(" ") : null;
 
           return {
             account: account?.trim(),
             password: password?.trim(),
-            apiUrl: apiUrl?.trim() || null
+            verifyUrl: verifyUrl?.trim() || null
           };
         }
         return null;
@@ -923,9 +927,9 @@ const handleAddAccount = async () => {
           item &&
           item.account &&
           item.password &&
-          (!item.apiUrl ||
-            item.apiUrl.startsWith("http://") ||
-            item.apiUrl.startsWith("https://"))
+          (!item.verifyUrl ||
+            item.verifyUrl.startsWith("http://") ||
+            item.verifyUrl.startsWith("https://"))
       );
 
     if (accounts.length === 0) {
@@ -944,17 +948,49 @@ const handleAddAccount = async () => {
       intervalHours: accountForm.intervalHours,
       startTime: accountForm.startTime,
       accounts: accounts.map(item =>
-        item.apiUrl
-          ? `${item.account} ${item.password} ${item.apiUrl}`
+        item.verifyUrl
+          ? `${item.account} ${item.password} ${item.verifyUrl}`
           : `${item.account} ${item.password}`
       )
     };
 
-    await createBatchChargePlansApi(batchData);
-    ElMessage.success(`成功添加 ${accounts.length} 个账号`);
-    showAddAccountDialog.value = false;
-    resetAccountForm();
-    await loadPlanList();
+    const response = await createBatchChargePlansApi(batchData);
+
+    // 检查响应数据，处理成功和失败情况
+    if (response && response.code === 0 && response.data) {
+      const data = response.data as any;
+      const { successCount, failCount, duplicateAccounts } = data;
+
+      if (successCount > 0 && failCount === 0) {
+        // 全部成功
+        ElMessage.success(`成功添加 ${successCount} 个账号`);
+        showAddAccountDialog.value = false;
+        resetAccountForm();
+        await loadPlanList();
+      } else if (successCount > 0 && failCount > 0) {
+        // 部分成功
+        let message = `成功添加 ${successCount} 个账号，失败 ${failCount} 个`;
+        if (duplicateAccounts && duplicateAccounts.length > 0) {
+          message += `。重复账号：${duplicateAccounts.join(", ")}`;
+        }
+        ElMessage.warning(message);
+        showAddAccountDialog.value = false;
+        resetAccountForm();
+        await loadPlanList();
+      } else if (failCount > 0) {
+        // 全部失败
+        let message = `添加失败，共 ${failCount} 个账号`;
+        if (duplicateAccounts && duplicateAccounts.length > 0) {
+          message += `。重复账号：${duplicateAccounts.join(", ")}`;
+        }
+        ElMessage.error(message);
+      } else {
+        // 未知情况
+        ElMessage.error("添加账号失败");
+      }
+    } else {
+      ElMessage.error(response?.message || "添加账号失败");
+    }
   } catch (error) {
     console.error("添加账号失败:", error);
     ElMessage.error("添加账号失败");
@@ -1061,7 +1097,7 @@ const loadPlanList = async () => {
             id: item.id || Math.random().toString(),
             account: item.account || "",
             country: item.country || "",
-            apiUrl: item.apiUrl || null, // API链接可选
+            verifyUrl: item.verifyUrl || null, // API链接可选
             totalAmount: item.totalAmount || "0.00",
             chargedAmount: item.chargedAmount || "0.00",
             dailyRemainingQuota: item.dailyRemainingQuota || "0.00",
@@ -1097,7 +1133,7 @@ const loadPlanList = async () => {
             id: item.id || Math.random().toString(),
             account: item.account || "",
             country: item.country || "",
-            apiUrl: item.apiUrl || null, // API链接可选
+            verifyUrl: item.verifyUrl || null, // API链接可选
             totalAmount: item.totalAmount || "0.00",
             chargedAmount: item.chargedAmount || "0.00",
             dailyRemainingQuota: item.dailyRemainingQuota || "0.00",
@@ -1136,7 +1172,7 @@ const loadPlanList = async () => {
             id: item.id || Math.random().toString(),
             account: item.account || "",
             country: item.country || "",
-            apiUrl: item.apiUrl || null, // API链接可选
+            verifyUrl: item.verifyUrl || null, // API链接可选
             totalAmount: item.totalAmount || "0.00",
             chargedAmount: item.chargedAmount || "0.00",
             dailyRemainingQuota: item.dailyRemainingQuota || "0.00",
