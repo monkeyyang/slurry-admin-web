@@ -119,13 +119,6 @@ export function useHook() {
       slot: "importedBy"
     },
     {
-      label: "导入时间",
-      prop: "importedAt",
-      width: 160,
-      align: "center" as const,
-      slot: "importedAt"
-    },
-    {
       label: "创建时间",
       prop: "createdAt",
       width: 160,

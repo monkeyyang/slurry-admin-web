@@ -62,7 +62,7 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="导入者" prop="importedBy">
+      <el-form-item label="用户昵称" prop="importedBy">
         <el-input
           v-model="searchFormParams.importedBy"
           placeholder="请输入导入者昵称"

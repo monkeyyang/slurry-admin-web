@@ -33,11 +33,8 @@
                   : "-"
               }}
             </el-descriptions-item>
-            <el-descriptions-item label="创建人" v-if="hasCreateByPermission">
+            <el-descriptions-item v-if="hasCreateByPermission" label="创建人">
               {{ accountDetail?.createdByName || "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="导入者">
-              {{ accountDetail?.importedByNickname || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="导入时间">
               {{ formatDateTime(accountDetail?.importedAt) }}
