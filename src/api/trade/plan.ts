@@ -27,6 +27,23 @@ export interface PlanItem {
   description?: string; // 描述
   createdAt?: string;
   updatedAt?: string;
+  // 添加汇率详细信息
+  rate?: {
+    id: number;
+    name: string;
+    country_code: string;
+    card_type: string;
+    card_form: string;
+    amount_constraint: string;
+    fixed_amounts: string | null;
+    multiple_base: number;
+    min_amount: string;
+    max_amount: string;
+    rate: string;
+    status: string;
+    description: string | null;
+  }; // 汇率详细信息对象
+  rate_name?: string; // 汇率名称（冗余字段，与rateName一致）
 }
 
 // 计划查询参数
@@ -64,7 +81,7 @@ export interface BackendPlanItem {
   daily_amounts: string; // JSON字符串
   status: "enabled" | "disabled";
   status_text: string;
-  enable_room_binding?: boolean; // 是否开启群聊绑定
+  bind_room?: number; // 是否绑定群聊：1绑定，0不绑定
   description: string | null;
   created_at: string;
   updated_at: string;
@@ -93,7 +110,7 @@ interface PlanSubmitData {
   day_interval?: number;
   daily_amounts?: number[];
   status?: string;
-  enable_room_binding?: boolean; // 是否开启群聊绑定
+  bind_room?: number; // 是否绑定群聊：1绑定，0不绑定
   description?: string;
 }
 
@@ -129,7 +146,7 @@ export const planApi = {
       day_interval: data.dayInterval,
       daily_amounts: data.dailyAmounts,
       status: data.status,
-      enable_room_binding: data.enableRoomBinding,
+      bind_room: data.enableRoomBinding ? 1 : 0,
       description: data.description
     };
 
@@ -152,7 +169,12 @@ export const planApi = {
       day_interval: data.dayInterval,
       daily_amounts: data.dailyAmounts,
       status: data.status,
-      enable_room_binding: data.enableRoomBinding,
+      bind_room:
+        data.enableRoomBinding !== undefined
+          ? data.enableRoomBinding
+            ? 1
+            : 0
+          : undefined,
       description: data.description
     };
 

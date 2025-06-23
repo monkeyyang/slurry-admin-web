@@ -30,9 +30,11 @@ export interface Account {
   password: string;
   apiUrl?: string;
   country: string;
-  status: "completed" | "processing" | "waiting";
+  status: "completed" | "processing" | "waiting" | "locking";
   loginStatus: "valid" | "invalid";
   planId?: string;
+  planName?: string; // 计划名称
+  planAmount?: number; // 计划金额
   completedDays?: DailyCompletion[];
   currentPlanDay?: number;
   createdByName?: string;
@@ -41,6 +43,48 @@ export interface Account {
   createdAt: string;
   updatedAt?: string;
   bindRoom?: string; // 绑定群聊
+  // 添加计划详细信息
+  plan?: {
+    id: string;
+    name: string;
+    country_code: string;
+    rate_id: number;
+    plan_days: number;
+    float_amount: string;
+    total_amount: string;
+    exchange_interval: number;
+    day_interval: number;
+    daily_amounts: number[];
+    completed_days: number[];
+    bind_room: number;
+    status: string;
+    description: string | null;
+  };
+  // 汇率信息（直接在账号下）
+  rate?: {
+    id: number;
+    name: string;
+    country_code: string;
+    card_type: string;
+    card_form: string;
+    amount_constraint: string;
+    fixed_amounts: string | null;
+    multiple_base: number;
+    min_amount: string;
+    max_amount: string;
+    rate: string;
+    status: string;
+    description: string | null;
+  };
+  // 群聊信息
+  room?: {
+    id: number;
+    room_name: string;
+  } | null;
+  // 用户信息
+  user?: {
+    nickname: string;
+  } | null;
 }
 
 // 批量导入账号接口
@@ -128,6 +172,48 @@ export const accountApi = {
       "/trade/itunes/accounts/batch-import",
       { data }
     );
+  },
+
+  // 绑定到计划
+  bindToPlan: (id: string, planId: string) => {
+    return http.request<ApiResponse<Account>>(
+      "post",
+      `/trade/itunes/accounts/${id}/bind-plan`,
+      { data: { planId } }
+    );
+  },
+
+  // 从计划解绑
+  unbindFromPlan: (id: string) => {
+    return http.request<ApiResponse<Account>>(
+      "post",
+      `/trade/itunes/accounts/${id}/unbind-plan`
+    );
+  },
+
+  // 更新登录状态
+  updateLoginStatus: (id: string, loginStatus: string) => {
+    return http.request<ApiResponse<Account>>(
+      "put",
+      `/trade/itunes/accounts/${id}/login-status`,
+      { data: { loginStatus } }
+    );
+  },
+
+  // 获取账号统计
+  getStatistics: () => {
+    return http.request<ApiResponse<any>>(
+      "get",
+      "/trade/itunes/accounts/statistics"
+    );
+  },
+
+  // 获取可用账号
+  getAvailableAccounts: () => {
+    return http.request<ApiResponse<Account[]>>(
+      "get",
+      "/trade/itunes/accounts/available"
+    );
   }
 };
 
@@ -145,6 +231,7 @@ export interface ExchangeLog {
   planId: string;
   day: number;
   amount: number;
+  code?: string; // 礼品卡Code
   status: "success" | "failed" | "pending";
   exchangeTime: string;
   errorMessage?: string;
@@ -156,10 +243,27 @@ export interface AccountDetail extends Account {
   plan?: {
     id: string;
     name: string;
-    planDays: number;
-    dailyAmounts: number[];
-    totalAmount: number;
+    country_code: string;
+    rate_id: number;
+    plan_days: number;
+    float_amount: string;
+    total_amount: string;
+    exchange_interval: number;
+    day_interval: number;
+    daily_amounts: number[];
+    completed_days: number[];
+    bind_room: number;
     status: string;
+    description: string | null;
+    // 兼容旧字段
+    planDays?: number;
+    totalAmount?: number;
+    floatAmount?: number;
+    enableRoomBinding?: boolean;
+    rateId?: string; // 汇率ID
+    rateName?: string; // 汇率名称
+    countryCode?: string; // 国家代码
+    countryName?: string; // 国家名称
   };
   exchangeLogs?: ExchangeLog[];
 }

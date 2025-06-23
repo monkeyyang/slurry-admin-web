@@ -129,6 +129,70 @@
   }
 }
 
+/* 通用响应式弹层样式 */
+.responsive-dialog {
+  :deep(.el-dialog) {
+    /* 大屏幕优化 */
+    @media (min-width: 1400px) {
+      margin: 3vh auto;
+    }
+    
+    @media (max-width: 768px) {
+      margin: 5vh auto;
+      width: 95% !important;
+      max-width: none !important;
+    }
+    
+    @media (max-width: 480px) {
+      margin: 2vh auto;
+      width: 98% !important;
+    }
+  }
+  
+  :deep(.el-dialog__body) {
+    @media (max-width: 768px) {
+      padding: 15px 20px;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 12px 15px;
+    }
+  }
+  
+  :deep(.el-dialog__footer) {
+    @media (max-width: 768px) {
+      padding: 15px 20px;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 12px 15px;
+      text-align: center;
+    }
+  }
+  
+  :deep(.el-form-item__label) {
+    @media (max-width: 768px) {
+      width: 100px !important;
+      font-size: 14px;
+    }
+    
+    @media (max-width: 480px) {
+      width: 80px !important;
+      font-size: 13px;
+    }
+  }
+  
+  :deep(.el-table) {
+    @media (max-width: 768px) {
+      font-size: 12px;
+      
+      .el-table__cell {
+        padding: 8px 4px;
+      }
+    }
+  }
+}
+
 /* 自定义菜单搜索样式 */
 .pure-search-dialog {
   @media screen and (width > 760px) and (width <= 940px) {

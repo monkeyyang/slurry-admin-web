@@ -2,7 +2,9 @@
   <el-dialog
     v-model="visible"
     title="汇率预览"
-    width="800px"
+    width="95%"
+    :style="{ maxWidth: '1300px' }"
+    class="responsive-dialog"
     :before-close="handleClose"
   >
     <div class="preview-container">

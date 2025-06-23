@@ -59,12 +59,19 @@ export function useHook() {
     {
       label: "账号",
       prop: "account",
-      width: 200,
+      minWidth: 180,
+      align: "center" as const,
+      showOverflowTooltip: true
+    },
+    {
+      label: "金额",
+      prop: "amount",
+      minWidth: 120,
       align: "center" as const
     },
     {
       label: "国家/地区",
-      prop: "country",
+      prop: "country.name_zh",
       width: 120,
       align: "center" as const
     },
@@ -83,20 +90,36 @@ export function useHook() {
       slot: "loginStatus"
     },
     {
-      label: "当前计划天数",
-      prop: "currentPlanDay",
-      width: 120,
+      label: "绑定计划",
+      prop: "planInfo",
+      minWidth: 200,
       align: "center" as const,
-      slot: "currentPlanDay"
+      slot: "planInfo"
+    },
+    {
+      label: "汇率信息",
+      prop: "rateInfo",
+      minWidth: 220,
+      align: "center" as const,
+      slot: "rateInfo",
+      showOverflowTooltip: true
+    },
+    {
+      label: "群聊名称",
+      prop: "roomName",
+      minWidth: 150,
+      align: "center" as const,
+      slot: "roomName",
+      showOverflowTooltip: true
     },
     ...(hasCreateByPermission
       ? [
           {
             label: "创建人",
-            prop: "createdBy",
+            prop: "user.nickname",
             width: 100,
             align: "center" as const,
-            slot: "createdBy"
+            slot: "uid"
           }
         ]
       : []),
@@ -105,30 +128,31 @@ export function useHook() {
           {
             label: "绑定群聊",
             prop: "bindRoom",
-            width: 120,
+            minWidth: 120,
             align: "center" as const,
-            slot: "bindRoom"
+            slot: "bindRoom",
+            showOverflowTooltip: true
           }
         ]
       : []),
     {
-      label: "导入者",
-      prop: "importedBy",
+      label: "创建人",
+      prop: "user.nickname",
       width: 120,
       align: "center" as const,
-      slot: "importedBy"
+      slot: "uid"
     },
     {
       label: "创建时间",
       prop: "createdAt",
-      width: 160,
+      minWidth: 160,
       align: "center" as const,
       slot: "createdAt"
     },
     {
       label: "操作",
       fixed: "right",
-      width: 200,
+      minWidth: 200,
       slot: "operation"
     }
   ];
@@ -164,7 +188,8 @@ export function useHook() {
     { label: "全部", value: "" },
     { label: "已完成", value: "completed" },
     { label: "进行中", value: "processing" },
-    { label: "等待中", value: "waiting" }
+    { label: "等待中", value: "waiting" },
+    { label: "锁定", value: "locking" }
   ];
 
   // 登录状态选项
@@ -193,18 +218,20 @@ export function useHook() {
             // 如果data直接是数组
             dataList.value = response.data.map(item => ({
               ...item,
+              // 确保基本字段存在
               id: item.id || Math.random().toString(),
               account: item.account || "",
-              country: item.country || "",
               status: item.status || "waiting",
               loginStatus: item.loginStatus || "invalid",
               currentPlanDay: item.currentPlanDay || 0,
-              createdByName: item.createdByName || "",
-              importedByNickname: item.importedByNickname || "",
-              importedAt: item.importedAt || "",
               createdAt: item.createdAt || "",
               updatedAt: item.updatedAt || "",
-              planId: item.planId || null,
+              // 保留完整的关联数据
+              plan: item.plan || null,
+              rate: item.rate || null,
+              room: item.room || null,
+              country: item.country || null,
+              user: item.user || null,
               completedDays: item.completedDays || []
             }));
             pagination.total = response.data.length;
@@ -212,18 +239,20 @@ export function useHook() {
             // 如果是分页结构 {data: [], total: number}
             dataList.value = response.data.data.map(item => ({
               ...item,
+              // 确保基本字段存在
               id: item.id || Math.random().toString(),
               account: item.account || "",
-              country: item.country || "",
               status: item.status || "waiting",
               loginStatus: item.loginStatus || "invalid",
               currentPlanDay: item.currentPlanDay || 0,
-              createdByName: item.createdByName || "",
-              importedByNickname: item.importedByNickname || "",
-              importedAt: item.importedAt || "",
               createdAt: item.createdAt || "",
               updatedAt: item.updatedAt || "",
-              planId: item.planId || null,
+              // 保留完整的关联数据
+              plan: item.plan || null,
+              rate: item.rate || null,
+              room: item.room || null,
+              country: item.country || null,
+              user: item.user || null,
               completedDays: item.completedDays || []
             }));
             pagination.total = response.data.total || response.data.data.length;
@@ -234,18 +263,20 @@ export function useHook() {
             // 如果是 {list: [], total: number} 结构
             dataList.value = (response.data as any).list.map(item => ({
               ...item,
+              // 确保基本字段存在
               id: item.id || Math.random().toString(),
               account: item.account || "",
-              country: item.country || "",
               status: item.status || "waiting",
               loginStatus: item.loginStatus || "invalid",
               currentPlanDay: item.currentPlanDay || 0,
-              createdByName: item.createdByName || "",
-              importedByNickname: item.importedByNickname || "",
-              importedAt: item.importedAt || "",
               createdAt: item.createdAt || "",
               updatedAt: item.updatedAt || "",
-              planId: item.planId || null,
+              // 保留完整的关联数据
+              plan: item.plan || null,
+              rate: item.rate || null,
+              room: item.room || null,
+              country: item.country || null,
+              user: item.user || null,
               completedDays: item.completedDays || []
             }));
             pagination.total =
@@ -461,6 +492,8 @@ export function useHook() {
         return "进行中";
       case "waiting":
         return "等待中";
+      case "locking":
+        return "锁定";
       default:
         return "未知";
     }
@@ -475,6 +508,8 @@ export function useHook() {
         return "primary";
       case "waiting":
         return "info";
+      case "locking":
+        return "danger";
       default:
         return "info";
     }
@@ -504,6 +539,88 @@ export function useHook() {
     }
   };
 
+  // 绑定到计划
+  const handleBindToPlan = async (row: Account, planId: string) => {
+    try {
+      if (row.id) {
+        await accountApi.bindToPlan(row.id, planId);
+        message("绑定计划成功", { type: "success" });
+        getList();
+      }
+    } catch (error) {
+      console.error("绑定计划失败:", error);
+      message("绑定计划失败", { type: "error" });
+    }
+  };
+
+  // 从计划解绑
+  const handleUnbindFromPlan = async (row: Account) => {
+    try {
+      await ElMessageBox.confirm(
+        `确定要将账号 "${row.account}" 从计划中解绑吗？`,
+        "解绑确认",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning"
+        }
+      );
+
+      if (row.id) {
+        await accountApi.unbindFromPlan(row.id);
+        message("解绑计划成功", { type: "success" });
+        getList();
+      }
+    } catch (error) {
+      if (error !== "cancel") {
+        console.error("解绑计划失败:", error);
+        message("解绑计划失败", { type: "error" });
+      }
+    }
+  };
+
+  // 更新登录状态
+  const handleUpdateLoginStatus = async (row: Account, loginStatus: string) => {
+    try {
+      if (row.id) {
+        await accountApi.updateLoginStatus(row.id, loginStatus);
+        message("登录状态更新成功", { type: "success" });
+        getList();
+      }
+    } catch (error) {
+      console.error("登录状态更新失败:", error);
+      message("登录状态更新失败", { type: "error" });
+    }
+  };
+
+  // 格式化固定面额
+  const formatFixedAmounts = (fixedAmounts: string | null): string => {
+    if (!fixedAmounts) return "-";
+    try {
+      const amounts = JSON.parse(fixedAmounts);
+      if (Array.isArray(amounts)) {
+        return amounts.join(", ");
+      }
+      return fixedAmounts;
+    } catch (error) {
+      return fixedAmounts;
+    }
+  };
+
+  // 获取约束类型文本
+  const getAmountConstraintText = (constraint: string): string => {
+    switch (constraint) {
+      case "fixed":
+        return "固定面额";
+      case "multiple":
+        return "倍数要求";
+      case "all":
+        return "全面额";
+      default:
+        return constraint || "未知";
+    }
+  };
+
   return {
     tableRef,
     loading,
@@ -525,9 +642,14 @@ export function useHook() {
     handleBatchDelete,
     handleUpdateStatus,
     handleBatchImport,
+    handleBindToPlan,
+    handleUnbindFromPlan,
+    handleUpdateLoginStatus,
     getStatusText,
     getStatusTagType,
     getLoginStatusText,
-    getLoginStatusTagType
+    getLoginStatusTagType,
+    formatFixedAmounts,
+    getAmountConstraintText
   };
 }

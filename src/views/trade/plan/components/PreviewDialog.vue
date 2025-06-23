@@ -2,7 +2,9 @@
   <el-dialog
     v-model="visible"
     title="计划详情"
-    width="800px"
+    width="95%"
+    :style="{ maxWidth: '1300px' }"
+    class="responsive-dialog"
     :before-close="handleClose"
   >
     <div v-if="planData" class="plan-detail">
@@ -16,7 +18,7 @@
               <span class="value">{{ planData.name }}</span>
             </div>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="24">
             <div class="detail-item">
               <span class="label">汇率名称：</span>
               <span class="value">{{ planData.rateName }}</span>
@@ -31,13 +33,13 @@
           <el-col :span="12">
             <div class="detail-item">
               <span class="label">兑换总额：</span>
-              <span class="value amount">{{ planData.totalAmount }}元</span>
+              <span class="value amount">{{ planData.totalAmount }}</span>
             </div>
           </el-col>
           <el-col :span="12">
             <div class="detail-item">
               <span class="label">浮动金额：</span>
-              <span class="value">{{ planData.floatAmount }}元</span>
+              <span class="value">{{ planData.floatAmount }}</span>
             </div>
           </el-col>
           <el-col :span="12">
@@ -46,6 +48,135 @@
               <el-tag :type="getStatusTagType(planData.status)">
                 {{ getStatusText(planData.status) }}
               </el-tag>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">绑定群聊：</span>
+              <el-tag :type="planData.enableRoomBinding ? 'success' : 'info'">
+                {{ planData.enableRoomBinding ? "已开启" : "未开启" }}
+              </el-tag>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+
+      <!-- 汇率详细信息 -->
+      <div v-if="planData.rate" class="detail-section">
+        <h3 class="section-title">汇率详细信息</h3>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">国家/地区：</span>
+              <span class="value">{{ planData.countryName }}</span>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">汇率：</span>
+              <span class="value rate-value">{{ planData.rate.rate }}</span>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">卡类型：</span>
+              <el-tag
+                :type="
+                  planData.rate.card_type === 'fast' ? 'success' : 'warning'
+                "
+              >
+                {{ planData.rate.card_type === "fast" ? "快卡" : "慢卡" }}
+              </el-tag>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">卡形式：</span>
+              <el-tag
+                :type="planData.rate.card_form === 'image' ? 'primary' : 'info'"
+              >
+                {{ planData.rate.card_form === "image" ? "卡图" : "卡密" }}
+              </el-tag>
+            </div>
+          </el-col>
+          <el-col :span="24">
+            <div class="detail-item">
+              <span class="label">面额限制：</span>
+              <el-tag
+                :type="
+                  getAmountConstraintTagType(planData.rate.amount_constraint)
+                "
+              >
+                {{ getAmountConstraintText(planData.rate.amount_constraint) }}
+              </el-tag>
+            </div>
+          </el-col>
+
+          <!-- 根据 amount_constraint 显示不同的详细信息 -->
+          <template v-if="planData.rate.amount_constraint === 'fixed'">
+            <el-col :span="24">
+              <div class="detail-item">
+                <span class="label">固定面额：</span>
+                <div class="fixed-amounts">
+                  <el-tag
+                    v-for="amount in formatFixedAmounts(
+                      planData.rate.fixed_amounts
+                    )"
+                    :key="amount"
+                    type="info"
+                    class="amount-tag"
+                  >
+                    {{ amount }}
+                  </el-tag>
+                </div>
+              </div>
+            </el-col>
+          </template>
+
+          <template v-if="planData.rate.amount_constraint === 'multiple'">
+            <el-col :span="12">
+              <div class="detail-item">
+                <span class="label">倍数基数：</span>
+                <span class="value">{{ planData.rate.multiple_base }}</span>
+              </div>
+            </el-col>
+            <el-col :span="12">
+              <div class="detail-item">
+                <span class="label">最小面额：</span>
+                <span class="value">{{ planData.rate.min_amount || "-" }}</span>
+              </div>
+            </el-col>
+            <el-col :span="12">
+              <div class="detail-item">
+                <span class="label">最大面额：</span>
+                <span class="value">{{ planData.rate.max_amount || "-" }}</span>
+              </div>
+            </el-col>
+          </template>
+
+          <template v-if="planData.rate.amount_constraint === 'all'">
+            <el-col :span="12">
+              <div class="detail-item">
+                <span class="label">最小面额：</span>
+                <span class="value">{{
+                  planData.rate.min_amount || "无限制"
+                }}</span>
+              </div>
+            </el-col>
+            <el-col :span="12">
+              <div class="detail-item">
+                <span class="label">最大面额：</span>
+                <span class="value">{{
+                  planData.rate.max_amount || "无限制"
+                }}</span>
+              </div>
+            </el-col>
+          </template>
+
+          <el-col v-if="planData.rate.description" :span="24">
+            <div class="detail-item">
+              <span class="label">汇率描述：</span>
+              <span class="value">{{ planData.rate.description }}</span>
             </div>
           </el-col>
         </el-row>
@@ -80,17 +211,17 @@
             class="daily-amount-card"
           >
             <div class="day-number">第{{ index + 1 }}天</div>
-            <div class="amount-value">{{ amount }}元</div>
+            <div class="amount-value">{{ amount }}</div>
           </div>
         </div>
         <div class="amounts-summary">
           <div class="summary-item">
             <span class="summary-label">总计：</span>
-            <span class="summary-value">{{ dailyAmountsSum }}元</span>
+            <span class="summary-value">{{ dailyAmountsSum }}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">平均每天：</span>
-            <span class="summary-value">{{ averageDailyAmount }}元</span>
+            <span class="summary-value">{{ averageDailyAmount }}</span>
           </div>
         </div>
       </div>
@@ -153,6 +284,48 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<Emits>();
+
+// 获取面额限制文本
+const getAmountConstraintText = (constraint: string) => {
+  switch (constraint) {
+    case "fixed":
+      return "固定面额";
+    case "multiple":
+      return "倍数要求";
+    case "all":
+      return "全面额";
+    default:
+      return constraint;
+  }
+};
+
+// 格式化固定金额
+const formatFixedAmounts = (fixedAmounts?: string | null) => {
+  if (!fixedAmounts) return [];
+  try {
+    const amounts = JSON.parse(fixedAmounts);
+    if (Array.isArray(amounts)) {
+      return amounts;
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+};
+
+// 获取面额限制标签类型
+const getAmountConstraintTagType = (constraint: string) => {
+  switch (constraint) {
+    case "fixed":
+      return "primary";
+    case "multiple":
+      return "success";
+    case "all":
+      return "info";
+    default:
+      return "info";
+  }
+};
 
 // 格式化日期时间
 const formatDateTime = (dateStr: string) => {
@@ -319,6 +492,23 @@ const handleClose = () => {
   font-size: 18px;
   font-weight: 600;
   color: #303133;
+}
+
+.rate-value {
+  color: #67c23a;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.fixed-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.amount-tag {
+  margin: 0;
 }
 
 .description-content {

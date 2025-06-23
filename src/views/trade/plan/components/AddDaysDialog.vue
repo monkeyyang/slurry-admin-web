@@ -2,7 +2,8 @@
   <el-dialog
     v-model="visible"
     title="添加天数计划"
-    width="600px"
+    width="90%"
+    :style="{ maxWidth: '1000px' }"
     :before-close="handleClose"
   >
     <div v-if="planData" class="add-days-content">
@@ -25,7 +26,7 @@
           <el-col :span="12">
             <div class="info-item">
               <span class="label">总金额：</span>
-              <span class="value">{{ planData.totalAmount }}元</span>
+              <span class="value">{{ planData.totalAmount }}</span>
             </div>
           </el-col>
         </el-row>
@@ -61,15 +62,15 @@
             <div class="balance-info">
               <div class="balance-item">
                 <span class="label">剩余金额：</span>
-                <span class="value amount">{{ remainingAmount }}元</span>
+                <span class="value amount">{{ remainingAmount }}</span>
               </div>
               <div class="balance-item">
                 <span class="label">每天平均：</span>
-                <span class="value">{{ averagePerDay }}元</span>
+                <span class="value">{{ averagePerDay }}</span>
               </div>
               <div class="balance-item">
                 <span class="label">余数：</span>
-                <span class="value">{{ remainder }}元（加到最后一天）</span>
+                <span class="value">{{ remainder }}（加到最后一天）</span>
               </div>
             </div>
           </el-form-item>
@@ -85,7 +86,7 @@
                 <span class="day-label"
                   >第{{ planData.planDays + index + 1 }}天：</span
                 >
-                <span class="amount-value">{{ amount }}元</span>
+                <span class="amount-value">{{ amount }}</span>
               </div>
             </div>
           </el-form-item>
@@ -356,5 +357,49 @@ const handleClose = () => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* 响应式弹层优化 */
+:deep(.el-dialog) {
+  @media (max-width: 768px) {
+    margin: 5vh auto;
+    width: 95% !important;
+    max-width: none !important;
+  }
+
+  @media (max-width: 480px) {
+    margin: 2vh auto;
+    width: 98% !important;
+  }
+}
+
+:deep(.el-form-item__label) {
+  @media (max-width: 768px) {
+    width: 100px !important;
+    font-size: 14px;
+  }
+}
+
+.preview-amounts {
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    padding: 12px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.info-item {
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .label {
+      margin-bottom: 4px;
+    }
+  }
 }
 </style>

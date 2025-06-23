@@ -2,7 +2,8 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑计划' : '新增计划'"
-    width="900px"
+    width="95%"
+    :style="{ maxWidth: '1400px' }"
     :before-close="handleClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
@@ -28,8 +29,8 @@
           placeholder="请选择国家"
           filterable
           :loading="countriesLoading"
-          @change="handleCountryChange"
           style="width: 100%"
+          @change="handleCountryChange"
         >
           <el-option
             v-for="item in countries"
@@ -47,8 +48,8 @@
           filterable
           :loading="ratesLoading"
           :disabled="!form.countryId"
-          @change="handleRateChange"
           style="width: 100%"
+          @change="handleRateChange"
         >
           <el-option
             v-for="item in rates"
@@ -141,7 +142,7 @@
               style="width: 120px"
               @change="handleDailyAmountChange"
             />
-            <span class="amount-unit">元</span>
+            <span class="amount-unit" />
             <el-tag
               v-if="!canEditDailyAmount(index)"
               type="warning"
@@ -152,9 +153,9 @@
             </el-tag>
           </div>
           <div class="daily-amounts-summary">
-            <span>总计：{{ dailyAmountsSum }}元</span>
+            <span>总计：{{ dailyAmountsSum }}</span>
             <span class="ml-4">
-              差额：{{ totalAmountDiff }}元
+              差额：{{ totalAmountDiff }}
               <el-tag
                 v-if="totalAmountDiff !== 0"
                 :type="totalAmountDiff > 0 ? 'success' : 'danger'"
@@ -308,7 +309,7 @@ const rules: FormRules = {
   status: [{ required: true, message: "请选择状态", trigger: "change" }]
 };
 
-// 生成计划名称（去掉"元"）
+// 生成计划名称
 const generatePlanName = () => {
   const rateName = form.value.rateName || "";
   const planDays = form.value.planDays || 0;
@@ -546,7 +547,11 @@ const getRatesByCountryId = async (countryId: string) => {
         id: item.id?.toString(),
         name: item.name,
         amountConstraint: item.amount_constraint,
-        fixedAmounts: item.fixed_amounts ? JSON.parse(item.fixed_amounts) : [],
+        fixedAmounts: Array.isArray(item.fixed_amounts)
+          ? item.fixed_amounts
+          : item.fixed_amounts
+            ? JSON.parse(item.fixed_amounts)
+            : [],
         multipleBase: item.multiple_base || 0,
         minAmount: parseFloat(item.min_amount || "0"),
         maxAmount: parseFloat(item.max_amount || "0"),
@@ -654,6 +659,7 @@ onMounted(() => {
 .tip-alert {
   margin-top: 4px;
   margin-bottom: 12px;
+  margin-left: 0; /* 确保与输入框对齐 */
   width: 100%;
 }
 
@@ -663,12 +669,22 @@ onMounted(() => {
   border-radius: 4px;
   padding: 16px;
   background-color: #fafafa;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 }
 
 .daily-amount-item {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
 }
 
 .daily-amount-item:last-of-type {
@@ -679,11 +695,21 @@ onMounted(() => {
   width: 80px;
   font-weight: 500;
   color: #606266;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-bottom: 4px;
+  }
 }
 
 .amount-unit {
   margin-left: 8px;
   color: #909399;
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+    margin-top: 4px;
+  }
 }
 
 .daily-amounts-summary {
@@ -691,6 +717,10 @@ onMounted(() => {
   padding-top: 12px;
   font-weight: 500;
   color: #303133;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 }
 
 .add-days-container {
@@ -718,5 +748,83 @@ onMounted(() => {
 
 .ml-4 {
   margin-left: 16px;
+}
+
+/* 响应式弹层优化 */
+:deep(.el-dialog) {
+  @media (max-width: 768px) {
+    margin: 5vh auto;
+    width: 95% !important;
+    max-width: none !important;
+  }
+
+  @media (max-width: 480px) {
+    margin: 2vh auto;
+    width: 98% !important;
+  }
+}
+
+:deep(.el-dialog__body) {
+  @media (max-width: 768px) {
+    padding: 15px 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 15px;
+  }
+}
+
+:deep(.el-dialog__footer) {
+  @media (max-width: 768px) {
+    padding: 15px 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 15px;
+    text-align: center;
+
+    .dialog-footer {
+      flex-direction: column;
+      gap: 8px;
+
+      .el-button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+/* 表单响应式 */
+:deep(.el-form-item__label) {
+  @media (max-width: 768px) {
+    width: 100px !important;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    width: 80px !important;
+    font-size: 13px;
+  }
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select__input) {
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+}
+
+/* 栅格系统响应式 */
+:deep(.el-row) {
+  @media (max-width: 768px) {
+    .el-col {
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
 }
 </style>

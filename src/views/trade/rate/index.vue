@@ -20,6 +20,8 @@ defineOptions({
 const {
   tableRef,
   loading,
+  statistics,
+  statisticsLoading,
   columns,
   pagination,
   searchFormParams,
@@ -30,6 +32,7 @@ const {
   getList,
   getCountriesList,
   getGroupsList,
+  getStatistics,
   onSearch,
   resetForm,
   handleDelete,

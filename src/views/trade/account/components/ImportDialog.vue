@@ -2,7 +2,8 @@
   <el-dialog
     v-model="visible"
     title="批量导入账号"
-    width="800px"
+    width="90%"
+    :style="{ maxWidth: '1200px' }"
     @close="handleClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -187,10 +188,15 @@ watch(
 <style scoped>
 .import-tips {
   margin-top: 10px;
+  margin-left: 0; /* 确保与输入框对齐 */
 }
 
 .tips-content {
   padding: 10px;
+
+  @media (max-width: 768px) {
+    padding: 8px;
+  }
 }
 
 .examples {
@@ -200,6 +206,11 @@ watch(
 .examples p {
   margin: 5px 0;
   font-size: 13px;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    margin: 3px 0;
+  }
 }
 
 .examples code {
@@ -209,9 +220,44 @@ watch(
   font-family: "Courier New", monospace;
   font-size: 12px;
   color: #e74c3c;
+  word-break: break-all;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+    padding: 1px 4px;
+    display: block;
+    margin-top: 2px;
+  }
 }
 
 .w-full {
   width: 100%;
+}
+
+/* 响应式弹层优化 */
+:deep(.el-dialog) {
+  @media (max-width: 768px) {
+    margin: 5vh auto;
+    width: 95% !important;
+    max-width: none !important;
+  }
+
+  @media (max-width: 480px) {
+    margin: 2vh auto;
+    width: 98% !important;
+  }
+}
+
+:deep(.el-form-item__label) {
+  @media (max-width: 768px) {
+    width: 80px !important;
+    font-size: 14px;
+  }
+}
+
+:deep(.el-textarea__inner) {
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 }
 </style>

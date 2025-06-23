@@ -59,10 +59,11 @@ export function useHook() {
       showOverflowTooltip: true
     },
     {
-      label: "汇率名称",
-      prop: "rateName",
-      width: 180,
+      label: "汇率信息",
+      prop: "rateInfo",
+      minWidth: 220,
       align: "center",
+      slot: "rateInfo",
       showOverflowTooltip: true
     },
     {
@@ -190,10 +191,13 @@ export function useHook() {
               ? JSON.parse(item.daily_amounts)
               : [],
             status: item.status,
-            enableRoomBinding: item.enable_room_binding || false,
+            enableRoomBinding: item.bind_room === 1,
             description: item.description,
             createdAt: item.created_at,
-            updatedAt: item.updated_at
+            updatedAt: item.updated_at,
+            // 添加汇率信息
+            rate: item.rate,
+            rate_name: item.rate_name
           })
         );
         pagination.total = response.data.total || 0;

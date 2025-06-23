@@ -2,7 +2,8 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑汇率' : '新增汇率'"
-    width="800px"
+    width="95%"
+    :style="{ maxWidth: '1300px' }"
     :before-close="handleClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
@@ -608,6 +609,16 @@ onMounted(() => {
   /* 左侧对齐并限制宽度不超出弹层 */
   margin: 4px 0 12px 120px;
   width: calc(100% - 120px);
+
+  @media (max-width: 768px) {
+    margin: 4px 0 12px 100px;
+    width: calc(100% - 100px);
+  }
+
+  @media (max-width: 480px) {
+    margin: 4px 0 12px 80px;
+    width: calc(100% - 80px);
+  }
 }
 
 /* 通用提示条：保证与输入框左对齐 */
@@ -616,5 +627,52 @@ onMounted(() => {
   margin-bottom: 12px;
   /* 在 form-item 内部自动占满；在独立位置可继承宽度 */
   width: 100%;
+}
+
+/* 响应式弹层优化 */
+:deep(.el-dialog) {
+  @media (max-width: 768px) {
+    margin: 5vh auto;
+    width: 95% !important;
+    max-width: none !important;
+  }
+
+  @media (max-width: 480px) {
+    margin: 2vh auto;
+    width: 98% !important;
+  }
+}
+
+:deep(.el-form-item__label) {
+  @media (max-width: 768px) {
+    width: 100px !important;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    width: 80px !important;
+    font-size: 13px;
+  }
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select__input) {
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+}
+
+/* 栅格系统响应式 */
+:deep(.el-row) {
+  @media (max-width: 768px) {
+    .el-col {
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
 }
 </style>

@@ -12,7 +12,7 @@
           v-model="searchFormParams.account"
           placeholder="请输入账号"
           clearable
-          class="!w-[200px]"
+          class="!w-[180px] !min-w-[120px]"
         />
       </el-form-item>
       <el-form-item label="国家/地区" prop="country">
@@ -21,7 +21,7 @@
           placeholder="请选择国家"
           clearable
           :loading="countriesLoading"
-          class="!w-[150px]"
+          class="!w-[140px] !min-w-[100px]"
         >
           <el-option label="全部" value="" />
           <el-option
@@ -37,7 +37,7 @@
           v-model="searchFormParams.status"
           placeholder="请选择状态"
           clearable
-          class="!w-[120px]"
+          class="!w-[120px] !min-w-[100px]"
         >
           <el-option
             v-for="item in statusOptions"
@@ -52,7 +52,7 @@
           v-model="searchFormParams.loginStatus"
           placeholder="请选择登录状态"
           clearable
-          class="!w-[120px]"
+          class="!w-[120px] !min-w-[100px]"
         >
           <el-option
             v-for="item in loginStatusOptions"
@@ -67,7 +67,7 @@
           v-model="searchFormParams.importedBy"
           placeholder="请输入导入者昵称"
           clearable
-          class="!w-[150px]"
+          class="!w-[140px] !min-w-[120px]"
         />
       </el-form-item>
       <el-form-item label="导入时间" prop="dateRange">
@@ -78,7 +78,7 @@
           end-placeholder="结束日期"
           format="YYYY-MM-DD HH:mm:ss"
           value-format="YYYY-MM-DD HH:mm:ss"
-          class="!w-[300px]"
+          class="!w-[280px] !min-w-[240px]"
           @change="handleDateRangeChange"
         />
       </el-form-item>
@@ -154,12 +154,80 @@
             </el-tag>
           </template>
 
-          <!-- 当前计划天数 -->
-          <template #currentPlanDay="{ row }">
-            <span v-if="row.currentPlanDay" class="text-blue-600">
-              第{{ row.currentPlanDay }}天
+          <!-- 绑定计划信息 -->
+          <template #planInfo="{ row }">
+            <div v-if="row.plan" class="plan-info">
+              <div class="plan-name">{{ row.plan.name || "未知计划" }}</div>
+              <div class="plan-details">
+                <!-- 当前天数/总天数 -->
+                <el-tag size="small" type="primary">
+                  第{{ row.currentPlanDay || 0 }}天/{{
+                    row.plan.plan_days || 0
+                  }}天
+                </el-tag>
+                <!-- 计划金额 -->
+                <el-tag size="small" type="success">
+                  计划: {{ row.plan.total_amount || 0 }}
+                </el-tag>
+                <!-- 浮动金额 -->
+                <el-tag size="small" type="warning">
+                  浮动: {{ row.plan.float_amount || 0 }}
+                </el-tag>
+              </div>
+            </div>
+            <span v-else class="text-gray-400">未绑定</span>
+          </template>
+
+          <!-- 汇率信息 -->
+          <template #rateInfo="{ row }">
+            <div v-if="row.rate" class="rate-info">
+              <div class="rate-name">
+                {{ row.rate.name || "-" }}
+              </div>
+              <div class="rate-details">
+                <!-- 汇率值 -->
+                <el-tag size="small" type="success">
+                  汇率: {{ row.rate.rate || "-" }}
+                </el-tag>
+
+                <!-- 根据 amount_constraint 显示不同信息 -->
+                <template v-if="row.rate.amount_constraint === 'multiple'">
+                  <el-tag size="small" type="info">
+                    倍数: {{ row.rate.multiple_base || 0 }}
+                  </el-tag>
+                  <el-tag size="small" type="warning">
+                    {{ row.rate.min_amount || 0 }}-{{
+                      row.rate.max_amount || 0
+                    }}
+                  </el-tag>
+                </template>
+
+                <template v-else-if="row.rate.amount_constraint === 'fixed'">
+                  <el-tag size="small" type="primary">
+                    固定: {{ formatFixedAmounts(row.rate.fixed_amounts) }}
+                  </el-tag>
+                </template>
+
+                <template v-else-if="row.rate.amount_constraint === 'all'">
+                  <el-tag size="small" type="success"> 全面额 </el-tag>
+                </template>
+
+                <template v-else-if="row.rate.amount_constraint">
+                  <el-tag size="small" type="info">
+                    {{ getAmountConstraintText(row.rate.amount_constraint) }}
+                  </el-tag>
+                </template>
+              </div>
+            </div>
+            <span v-else class="text-gray-400">无汇率信息</span>
+          </template>
+
+          <!-- 群聊名称 -->
+          <template #roomName="{ row }">
+            <span v-if="row.room && row.room.room_name" class="text-blue-600">
+              {{ row.room.room_name }}
             </span>
-            <span v-else class="text-gray-400">-</span>
+            <span v-else class="text-gray-400">未绑定群聊</span>
           </template>
 
           <!-- 创建人 -->
@@ -202,42 +270,89 @@
 
           <!-- 操作 -->
           <template #operation="{ row }">
-            <el-button
-              class="reset-margin"
-              link
-              type="primary"
-              :size="size"
-              :icon="useRenderIcon(View)"
-              @click="openDetailDialog(row)"
-            >
-              详情
-            </el-button>
-            <el-button
-              class="reset-margin"
-              link
-              type="warning"
-              :size="size"
-              :icon="useRenderIcon(EditPen)"
-              @click="openStatusDialog(row)"
-            >
-              修改状态
-            </el-button>
-            <el-popconfirm
-              :title="`确定要删除账号 ${row.account} 吗？`"
-              @confirm="handleDelete(row)"
-            >
-              <template #reference>
+            <div class="operation-buttons">
+              <!-- 大屏幕显示所有按钮 -->
+              <div class="desktop-operations">
                 <el-button
                   class="reset-margin"
                   link
-                  type="danger"
+                  type="primary"
                   :size="size"
-                  :icon="useRenderIcon(Delete)"
+                  :icon="useRenderIcon(View)"
+                  @click="openDetailDialog(row)"
                 >
-                  删除
+                  详情
                 </el-button>
-              </template>
-            </el-popconfirm>
+                <el-button
+                  class="reset-margin"
+                  link
+                  type="warning"
+                  :size="size"
+                  :icon="useRenderIcon(EditPen)"
+                  @click="openStatusDialog(row)"
+                >
+                  修改状态
+                </el-button>
+                <el-button
+                  v-if="!row.plan"
+                  class="reset-margin"
+                  link
+                  type="success"
+                  :size="size"
+                  @click="openBindPlanDialog(row)"
+                >
+                  绑定计划
+                </el-button>
+                <el-button
+                  v-else
+                  class="reset-margin"
+                  link
+                  type="warning"
+                  :size="size"
+                  @click="handleUnbindFromPlan(row)"
+                >
+                  解绑计划
+                </el-button>
+                <el-popconfirm
+                  :title="`确定要删除账号 ${row.account} 吗？`"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      class="reset-margin"
+                      link
+                      type="danger"
+                      :size="size"
+                      :icon="useRenderIcon(Delete)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+
+              <!-- 小屏幕显示下拉菜单 -->
+              <div class="mobile-operations">
+                <el-dropdown trigger="click">
+                  <el-button :size="size" type="primary" link>
+                    操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="openDetailDialog(row)">
+                        <component :is="useRenderIcon(View)" />详情
+                      </el-dropdown-item>
+                      <el-dropdown-item @click="openStatusDialog(row)">
+                        <component :is="useRenderIcon(EditPen)" />修改状态
+                      </el-dropdown-item>
+                      <el-dropdown-item @click="handleDelete(row)">
+                        <component :is="useRenderIcon(Delete)" />删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </div>
           </template>
         </pure-table>
       </template>
@@ -268,6 +383,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { ElMessageBox } from "element-plus";
 import { useHook } from "./hook";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -282,6 +398,7 @@ import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/ep/refresh";
 import Upload from "@iconify-icons/ep/upload";
 import View from "@iconify-icons/ep/view";
+import { ArrowDown } from "@element-plus/icons-vue";
 
 import type { Account, BatchImportAccountsRequest } from "@/api/trade/account";
 
@@ -310,10 +427,15 @@ const {
   handleBatchDelete,
   handleUpdateStatus,
   handleBatchImport,
+  handleBindToPlan,
+  handleUnbindFromPlan,
+  handleUpdateLoginStatus,
   getStatusText,
   getStatusTagType,
   getLoginStatusText,
-  getLoginStatusTagType
+  getLoginStatusTagType,
+  formatFixedAmounts,
+  getAmountConstraintText
 } = useHook();
 
 const searchFormRef = ref();
@@ -386,6 +508,31 @@ const openStatusDialog = (row: Account) => {
   statusDialogVisible.value = true;
 };
 
+// 打开绑定计划对话框
+const openBindPlanDialog = async (account: Account) => {
+  try {
+    // 这里可以实现一个选择计划的对话框，或者直接使用ElMessageBox
+    const { value: planId } = await ElMessageBox.prompt(
+      "请输入要绑定的计划ID:",
+      "绑定计划",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /\S+/,
+        inputErrorMessage: "计划ID不能为空"
+      }
+    );
+
+    if (planId) {
+      await handleBindToPlan(account, planId);
+    }
+  } catch (error) {
+    if (error !== "cancel") {
+      console.error("绑定计划失败:", error);
+    }
+  }
+};
+
 // 处理导入成功
 const handleImportSuccess = async (importData: BatchImportAccountsRequest) => {
   const result = await handleBatchImport(importData);
@@ -418,6 +565,28 @@ onMounted(() => {
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+
+  // 响应式布局优化
+  @media (max-width: 1200px) {
+    padding-left: 16px !important;
+
+    :deep(.el-form-item) {
+      margin-right: 8px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding-left: 12px !important;
+
+    :deep(.el-form-item) {
+      margin-bottom: 8px;
+      margin-right: 4px;
+
+      .el-form-item__label {
+        min-width: 60px !important;
+      }
+    }
+  }
 }
 
 .text-muted {
@@ -447,5 +616,100 @@ onMounted(() => {
 
 .text-green-600 {
   color: #059669;
+}
+
+.plan-info {
+  text-align: center;
+}
+
+.plan-name {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.plan-details {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.rate-info {
+  text-align: center;
+}
+
+.rate-name {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.rate-details {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .el-tag {
+    margin: 1px;
+    font-size: 11px;
+  }
+}
+
+// 表格响应式优化
+:deep(.pure-table) {
+  .el-table {
+    @media (max-width: 768px) {
+      font-size: 12px;
+
+      .el-table__cell {
+        padding: 8px 4px;
+      }
+
+      .el-button {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// 操作按钮响应式
+.operation-buttons {
+  .desktop-operations {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+
+  .mobile-operations {
+    display: none;
+
+    @media (max-width: 768px) {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+  }
+}
+
+// 操作列宽度优化
+:deep(.pure-table) {
+  @media (max-width: 768px) {
+    .el-table__fixed-right {
+      width: 80px !important;
+    }
+
+    .el-table__fixed-right-patch {
+      width: 80px !important;
+    }
+  }
 }
 </style>

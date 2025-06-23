@@ -217,7 +217,9 @@
     <el-dialog
       v-model="showAddAccountDialog"
       title="添加账号"
-      width="800px"
+      width="95%"
+      :style="{ maxWidth: '1300px' }"
+      class="responsive-dialog"
       @close="resetAccountForm"
     >
       <el-form
@@ -308,7 +310,9 @@
     <el-dialog
       v-model="showEditDialog"
       title="编辑计划"
-      width="800px"
+      width="95%"
+      :style="{ maxWidth: '1300px' }"
+      class="responsive-dialog"
       @close="resetEditForm"
     >
       <el-form
@@ -373,7 +377,9 @@
     <el-dialog
       v-model="showViewDialog"
       title="计划详情"
-      width="800px"
+      width="95%"
+      :style="{ maxWidth: '1400px' }"
+      class="responsive-dialog"
       @close="resetViewData"
     >
       <div v-if="viewData" class="plan-detail">
@@ -1484,6 +1490,7 @@ onMounted(async () => {
   font-size: 12px;
   color: #999;
   margin-top: 5px;
+  margin-left: 0; /* 确保与输入框对齐 */
 }
 
 .mb-4 {

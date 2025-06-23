@@ -153,6 +153,17 @@ export function useHook() {
   const countriesList = ref<CountryOption[]>([]);
   const groupsList = ref<GroupOption[]>([]);
 
+  // 统计数据
+  const statistics = ref({
+    totalCount: 0,
+    activeCount: 0,
+    inactiveCount: 0,
+    fixedCount: 0,
+    multipleCount: 0,
+    allCount: 0
+  });
+  const statisticsLoading = ref(false);
+
   // 状态选项
   const statusOptions = [
     { label: "全部", value: "" },
@@ -186,9 +197,11 @@ export function useHook() {
             cardType: item.card_type,
             cardForm: item.card_form,
             amountConstraint: item.amount_constraint,
-            fixedAmounts: item.fixed_amounts
-              ? JSON.parse(item.fixed_amounts)
-              : [],
+            fixedAmounts: Array.isArray(item.fixed_amounts)
+              ? item.fixed_amounts
+              : item.fixed_amounts
+                ? JSON.parse(item.fixed_amounts)
+                : [],
             multipleBase: item.multiple_base,
             minAmount: parseFloat(item.min_amount || "0"),
             maxAmount: parseFloat(item.max_amount || "0"),
@@ -261,6 +274,63 @@ export function useHook() {
       message("获取群组列表失败", { type: "error" });
     } finally {
       groupsLoading.value = false;
+    }
+  };
+
+  // 获取统计数据
+  const getStatistics = async () => {
+    try {
+      statisticsLoading.value = true;
+      const response = await rateApi.getStatistics();
+      if (response.data) {
+        statistics.value = {
+          totalCount: response.data.totalCount || 0,
+          activeCount: response.data.activeCount || 0,
+          inactiveCount: response.data.inactiveCount || 0,
+          fixedCount: response.data.fixedCount || 0,
+          multipleCount: response.data.multipleCount || 0,
+          allCount: response.data.allCount || 0
+        };
+      } else {
+        // 如果后端没有返回统计数据，可以基于当前列表数据计算
+        statistics.value = {
+          totalCount: dataList.value.length,
+          activeCount: dataList.value.filter(item => item.status === "active")
+            .length,
+          inactiveCount: dataList.value.filter(
+            item => item.status === "inactive"
+          ).length,
+          fixedCount: dataList.value.filter(
+            item => item.amountConstraint === "fixed"
+          ).length,
+          multipleCount: dataList.value.filter(
+            item => item.amountConstraint === "multiple"
+          ).length,
+          allCount: dataList.value.filter(
+            item => item.amountConstraint === "all"
+          ).length
+        };
+      }
+    } catch (error) {
+      console.error("获取统计数据失败:", error);
+      // 基于当前数据计算统计
+      statistics.value = {
+        totalCount: dataList.value.length,
+        activeCount: dataList.value.filter(item => item.status === "active")
+          .length,
+        inactiveCount: dataList.value.filter(item => item.status === "inactive")
+          .length,
+        fixedCount: dataList.value.filter(
+          item => item.amountConstraint === "fixed"
+        ).length,
+        multipleCount: dataList.value.filter(
+          item => item.amountConstraint === "multiple"
+        ).length,
+        allCount: dataList.value.filter(item => item.amountConstraint === "all")
+          .length
+      };
+    } finally {
+      statisticsLoading.value = false;
     }
   };
 
@@ -374,6 +444,8 @@ export function useHook() {
     loading,
     countriesLoading,
     groupsLoading,
+    statistics,
+    statisticsLoading,
     columns,
     pagination,
     searchFormParams,
@@ -384,6 +456,7 @@ export function useHook() {
     getList,
     getCountriesList,
     getGroupsList,
+    getStatistics,
     onSearch,
     resetForm,
     handleDelete,

@@ -196,6 +196,22 @@ export const rateApi = {
     );
   },
 
+  // 批量更新状态
+  batchUpdateStatus: (ids: string[], status: "active" | "inactive") => {
+    return http.request<{ message: string }>(
+      "post",
+      "/trade/itunes/rates/batch-status",
+      {
+        data: { ids, status }
+      }
+    );
+  },
+
+  // 获取汇率统计
+  getStatistics: () => {
+    return http.request<{ data: any }>("get", "/trade/itunes/rates-statistics");
+  },
+
   // 获取群组列表
   getRooms: () => {
     return http.request<{ data: RoomOption[] }>("get", "/trade/itunes/rooms");

@@ -2,7 +2,8 @@
   <el-dialog
     v-model="visible"
     title="更改账号状态"
-    width="400px"
+    width="90%"
+    :style="{ maxWidth: '600px' }"
     @close="handleClose"
   >
     <el-form label-width="80px">
@@ -114,5 +115,51 @@ watch(
 <style scoped>
 .w-full {
   width: 100%;
+}
+
+/* 响应式弹层优化 */
+:deep(.el-dialog) {
+  @media (max-width: 768px) {
+    margin: 15vh auto;
+    width: 90% !important;
+    max-width: none !important;
+  }
+
+  @media (max-width: 480px) {
+    margin: 10vh auto;
+    width: 95% !important;
+  }
+}
+
+:deep(.el-form-item__label) {
+  @media (max-width: 768px) {
+    width: 70px !important;
+    font-size: 14px;
+  }
+}
+
+:deep(.el-dialog__body) {
+  @media (max-width: 768px) {
+    padding: 15px 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 15px;
+  }
+}
+
+:deep(.el-dialog__footer) {
+  @media (max-width: 768px) {
+    padding: 15px 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 15px;
+    text-align: center;
+
+    .el-button {
+      margin: 0 5px;
+    }
+  }
 }
 </style>

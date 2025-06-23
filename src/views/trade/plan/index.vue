@@ -108,13 +108,13 @@
           <!-- 总金额 -->
           <template #totalAmount="{ row }">
             <span class="font-medium text-orange-500">
-              {{ row.totalAmount }}元
+              {{ row.totalAmount }}
             </span>
           </template>
 
           <!-- 浮动金额 -->
           <template #floatAmount="{ row }">
-            <span class="text-gray-600"> {{ row.floatAmount }}元 </span>
+            <span class="text-gray-600"> {{ row.floatAmount }} </span>
           </template>
 
           <!-- 兑换间隔 -->
@@ -146,6 +146,55 @@
             <span class="text-gray-600">
               {{ formatDateTime(row.createdAt) }}
             </span>
+          </template>
+
+          <!-- 汇率信息 -->
+          <template #rateInfo="{ row }">
+            <div class="rate-info">
+              <div class="rate-name">
+                {{ row.rate_name || row.rateName || "-" }}
+              </div>
+              <div class="rate-details">
+                <!-- 汇率值 -->
+                <el-tag size="small" type="success">
+                  汇率: {{ row.rate?.rate || "-" }}
+                </el-tag>
+
+                <!-- 根据 amount_constraint 显示不同信息 -->
+                <template
+                  v-if="row.rate && row.rate.amount_constraint === 'multiple'"
+                >
+                  <el-tag size="small" type="info">
+                    倍数: {{ row.rate.multiple_base || 0 }}
+                  </el-tag>
+                  <el-tag size="small" type="warning">
+                    {{ row.rate.min_amount || 0 }}-{{
+                      row.rate.max_amount || 0
+                    }}
+                  </el-tag>
+                </template>
+
+                <template
+                  v-else-if="row.rate && row.rate.amount_constraint === 'fixed'"
+                >
+                  <el-tag size="small" type="primary">
+                    固定: {{ formatFixedAmounts(row.rate.fixed_amounts) }}
+                  </el-tag>
+                </template>
+
+                <template
+                  v-else-if="row.rate && row.rate.amount_constraint === 'all'"
+                >
+                  <el-tag size="small" type="success"> 全面额 </el-tag>
+                </template>
+
+                <template v-else-if="row.rate && row.rate.amount_constraint">
+                  <el-tag size="small" type="info">
+                    {{ getAmountConstraintText(row.rate.amount_constraint) }}
+                  </el-tag>
+                </template>
+              </div>
+            </div>
           </template>
 
           <!-- 操作 -->
@@ -190,7 +239,7 @@
             >
               禁用
             </el-button>
-            <el-button
+            <!-- <el-button
               class="reset-margin"
               link
               type="info"
@@ -198,7 +247,7 @@
               @click="openAddDaysDialog(row)"
             >
               添加天数
-            </el-button>
+            </el-button> -->
             <el-popconfirm
               :title="`确定要删除计划 ${row.name} 吗？`"
               @confirm="handleDelete(row)"
@@ -356,6 +405,34 @@ const handleDialogSuccess = () => {
   getList();
 };
 
+// 获取金额约束文本
+const getAmountConstraintText = (constraint?: string) => {
+  switch (constraint) {
+    case "fixed":
+      return "固定面额";
+    case "multiple":
+      return "倍数要求";
+    case "all":
+      return "全面额";
+    default:
+      return constraint || "-";
+  }
+};
+
+// 格式化固定金额
+const formatFixedAmounts = (fixedAmounts?: string | null) => {
+  if (!fixedAmounts) return "-";
+  try {
+    const amounts = JSON.parse(fixedAmounts);
+    if (Array.isArray(amounts)) {
+      return amounts.join(",");
+    }
+    return fixedAmounts;
+  } catch (error) {
+    return fixedAmounts;
+  }
+};
+
 onMounted(() => {
   getList();
   getCountriesList();
@@ -370,6 +447,29 @@ onMounted(() => {
 .search-form {
   :deep(.el-form-item) {
     margin-bottom: 12px;
+  }
+}
+
+.rate-info {
+  text-align: center;
+}
+
+.rate-name {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.rate-details {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .el-tag {
+    margin: 1px;
+    font-size: 11px;
   }
 }
 </style>
