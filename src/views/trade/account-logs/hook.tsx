@@ -86,6 +86,13 @@ export function useHook() {
       slot: "amount"
     },
     {
+      label: "账户余额",
+      prop: "after_amount",
+      width: 120,
+      align: "center",
+      slot: "after_amount"
+    },
+    {
       label: "账号",
       prop: "account",
       minWidth: 120,

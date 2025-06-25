@@ -442,16 +442,38 @@ export function useHook() {
       // 检查响应数据，处理成功和失败情况
       if (response && response.code === 0 && response.data) {
         const data = response.data;
-        const { successCount, failCount, duplicateAccounts } = data;
+        const {
+          successCount = 0,
+          failCount = 0,
+          duplicateAccounts = [],
+          restoredCount = 0,
+          createdCount = 0,
+          updatedCount = 0
+        } = data;
 
-        if (successCount > 0 && failCount === 0) {
+        // 计算总的成功数量（包括恢复、创建、更新的）
+        const totalSuccessCount =
+          successCount || restoredCount + createdCount + updatedCount;
+
+        if (
+          totalSuccessCount > 0 &&
+          (failCount === 0 || failCount === undefined)
+        ) {
           // 全部成功
-          message(`成功导入 ${successCount} 个账号`, { type: "success" });
+          let msg = `成功导入 ${totalSuccessCount} 个账号`;
+          if (restoredCount > 0 || createdCount > 0 || updatedCount > 0) {
+            const details = [];
+            if (restoredCount > 0) details.push(`恢复 ${restoredCount} 个`);
+            if (createdCount > 0) details.push(`新建 ${createdCount} 个`);
+            if (updatedCount > 0) details.push(`更新 ${updatedCount} 个`);
+            msg += `（${details.join("，")}）`;
+          }
+          message(msg, { type: "success" });
           getList();
-          return { success: true, message: `成功导入 ${successCount} 个账号` };
-        } else if (successCount > 0 && failCount > 0) {
+          return { success: true, message: msg };
+        } else if (totalSuccessCount > 0 && failCount > 0) {
           // 部分成功
-          let msg = `成功导入 ${successCount} 个账号，失败 ${failCount} 个`;
+          let msg = `成功导入 ${totalSuccessCount} 个账号，失败 ${failCount} 个`;
           if (duplicateAccounts && duplicateAccounts.length > 0) {
             msg += `。重复账号：${duplicateAccounts.join(", ")}`;
           }
@@ -466,10 +488,16 @@ export function useHook() {
           }
           message(msg, { type: "error" });
           return { success: false, message: msg };
+        } else if (totalSuccessCount === 0) {
+          // 没有成功导入任何账号
+          message("没有可导入的账号", { type: "warning" });
+          return { success: false, message: "没有可导入的账号" };
         } else {
-          // 未知情况
-          message("导入账号失败", { type: "error" });
-          return { success: false, message: "导入账号失败" };
+          // 其他情况，使用后端返回的消息
+          const msg = response.message || "批量导入完成";
+          message(msg, { type: "success" });
+          getList();
+          return { success: true, message: msg };
         }
       } else {
         const msg = response?.message || "导入账号失败";

@@ -102,9 +102,13 @@ export interface BatchImportAccountsRequest {
 // 批量导入响应
 export interface BatchImportResponse {
   successCount: number;
-  failCount: number;
-  duplicateAccounts: string[];
+  failCount?: number;
+  duplicateAccounts?: string[];
   accounts: Account[];
+  // 后端实际返回的字段
+  restoredCount?: number;
+  createdCount?: number;
+  updatedCount?: number;
 }
 
 // 查询参数接口

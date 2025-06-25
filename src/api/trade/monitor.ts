@@ -93,6 +93,7 @@ export interface ExecutionLog {
   country_code: string;
   day: number;
   amount: number;
+  after_amount: number; // 账户余额（执行后的余额）
   code: string;
   status: string;
   status_text: string;
@@ -104,6 +105,7 @@ export interface ExecutionLog {
   room_id: string | null;
   room_name: string | null;
   wxid: string | null;
+  batch_id: string | null;
   account_info: {
     id: number;
     account: string;
@@ -112,11 +114,26 @@ export interface ExecutionLog {
     id: number;
     name: string;
     status: string;
+    plan_days: number;
+    total_amount: string;
+    float_amount: string;
+    exchange_interval: number;
+    day_interval: number;
+    daily_amounts: number[];
+    completed_days: number[];
   } | null;
   rate_info: {
     id: number;
     name: string;
     rate: string;
+    card_type: string;
+    card_form: string;
+    amount_constraint: string;
+    fixed_amounts: string | null;
+    multiple_base: number;
+    min_amount: string;
+    max_amount: string;
+    status: string;
   } | null;
 }
 

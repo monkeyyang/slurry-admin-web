@@ -288,6 +288,13 @@
             </span>
           </template>
 
+          <!-- 账户余额 -->
+          <template #after_amount="{ row }">
+            <span class="font-medium text-blue-600">
+              {{ row.after_amount || 0 }}
+            </span>
+          </template>
+
           <!-- 执行状态 -->
           <template #status="{ row }">
             <el-tag :type="getExecutionStatusTagType(row.status)">
