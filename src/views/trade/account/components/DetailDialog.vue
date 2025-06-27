@@ -93,41 +93,55 @@
 
             <!-- 汇率详细信息 -->
             <div v-if="rateDetail" class="rate-detail-section">
-              <h4>绑定汇率信息</h4>
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="汇率名称">
-                  {{ accountDetail.plan.rateName || rateDetail.name }}
+              <h4>绑定汇率详情</h4>
+              <el-descriptions :column="2" border class="detail-descriptions">
+                <el-descriptions-item label="汇率名称" :span="2">
+                  <el-text truncated>{{
+                    accountDetail.plan.rateName || rateDetail.name
+                  }}</el-text>
+                </el-descriptions-item>
+                <el-descriptions-item label="汇率值">
+                  <el-text type="warning" class="font-medium rate-text">{{
+                    rateDetail.rate
+                  }}</el-text>
                 </el-descriptions-item>
                 <el-descriptions-item label="国家/地区">
                   {{ accountDetail.plan.countryName || rateDetail.countryName }}
                 </el-descriptions-item>
-                <el-descriptions-item label="汇率">
-                  <span class="rate-value">{{ rateDetail.rate }}</span>
-                </el-descriptions-item>
                 <el-descriptions-item label="卡类型">
                   <el-tag
-                    :type="
-                      rateDetail.cardType === 'fast' ? 'success' : 'warning'
-                    "
+                    size="small"
+                    :type="rateDetail.cardType === 'fast' ? 'success' : 'info'"
                   >
                     {{ rateDetail.cardType === "fast" ? "快卡" : "慢卡" }}
                   </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="卡形式">
-                  <el-tag
-                    :type="rateDetail.cardForm === 'image' ? 'primary' : 'info'"
-                  >
-                    {{ rateDetail.cardForm === "image" ? "卡图" : "卡密" }}
+                  <el-tag size="small">
+                    {{ rateDetail.cardForm === "image" ? "卡图" : "卡号" }}
                   </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="面额限制">
-                  <el-tag
-                    :type="
-                      getAmountConstraintTagType(rateDetail.amountConstraint)
-                    "
-                  >
+                <el-descriptions-item label="金额约束">
+                  <el-tag size="small" type="warning">
                     {{ getAmountConstraintText(rateDetail.amountConstraint) }}
                   </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item
+                  v-if="rateDetail.amountConstraint === 'multiple'"
+                  label="倍数基数"
+                >
+                  <el-text class="font-medium">{{
+                    rateDetail.multipleBase
+                  }}</el-text>
+                </el-descriptions-item>
+                <el-descriptions-item
+                  v-if="rateDetail.amountConstraint === 'multiple'"
+                  label="金额范围"
+                >
+                  <el-text
+                    >{{ rateDetail.minAmount }} -
+                    {{ rateDetail.maxAmount }}</el-text
+                  >
                 </el-descriptions-item>
                 <el-descriptions-item
                   v-if="
@@ -137,50 +151,36 @@
                   label="固定面额"
                   :span="2"
                 >
-                  <div class="fixed-amounts">
+                  <div class="fixed-amounts-detailed">
                     <el-tag
                       v-for="amount in rateDetail.fixedAmounts"
                       :key="amount"
-                      type="info"
-                      class="amount-tag"
+                      size="small"
+                      type="primary"
+                      class="mr-1 mb-1"
                     >
                       {{ amount }}
                     </el-tag>
                   </div>
                 </el-descriptions-item>
                 <el-descriptions-item
-                  v-if="
-                    rateDetail.amountConstraint === 'multiple' &&
-                    rateDetail.multipleBase
-                  "
-                  label="倍数基数"
+                  label="汇率状态"
+                  :span="rateDetail.amountConstraint === 'fixed' ? 2 : 1"
                 >
-                  {{ rateDetail.multipleBase }}
-                </el-descriptions-item>
-                <el-descriptions-item
-                  v-if="
-                    rateDetail.amountConstraint === 'all' ||
-                    rateDetail.amountConstraint === 'multiple'
-                  "
-                  label="最小面额"
-                >
-                  {{ rateDetail.minAmount || "-" }}
-                </el-descriptions-item>
-                <el-descriptions-item
-                  v-if="
-                    rateDetail.amountConstraint === 'all' ||
-                    rateDetail.amountConstraint === 'multiple'
-                  "
-                  label="最大面额"
-                >
-                  {{ rateDetail.maxAmount || "-" }}
+                  <el-tag
+                    :type="
+                      rateDetail.status === 'active' ? 'success' : 'danger'
+                    "
+                  >
+                    {{ rateDetail.status === "active" ? "激活" : "禁用" }}
+                  </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item
                   v-if="rateDetail.description"
                   label="汇率描述"
                   :span="2"
                 >
-                  {{ rateDetail.description }}
+                  <el-text>{{ rateDetail.description }}</el-text>
                 </el-descriptions-item>
               </el-descriptions>
             </div>
@@ -190,12 +190,22 @@
               <h4>每日计划金额</h4>
               <div class="daily-amounts-grid">
                 <div
-                  v-for="(amount, index) in accountDetail.plan.dailyAmounts"
+                  v-for="(amount, index) in accountDetail.plan.daily_amounts ||
+                  accountDetail.plan.dailyAmounts"
                   :key="index"
                   class="daily-amount-card"
+                  :class="{
+                    'current-day': index + 1 === accountDetail.currentPlanDay
+                  }"
                 >
                   <div class="day-number">第{{ index + 1 }}天</div>
                   <div class="amount">{{ amount }}</div>
+                  <div
+                    v-if="index + 1 === accountDetail.currentPlanDay"
+                    class="current-indicator"
+                  >
+                    当前
+                  </div>
                 </div>
               </div>
             </div>
@@ -280,33 +290,57 @@
         <el-tab-pane label="兑换日志" name="logs">
           <div v-if="accountDetail?.exchangeLogs?.length" class="exchange-logs">
             <el-table :data="accountDetail.exchangeLogs" border stripe>
+              <el-table-column prop="id" label="ID" width="80" align="center" />
               <el-table-column
                 prop="day"
-                label="天数"
-                width="80"
+                label="执行天数"
+                width="100"
                 align="center"
               >
-                <template #default="{ row }"> 第{{ row.day }}天 </template>
+                <template #default="{ row }">
+                  <el-tag type="info" size="small">第{{ row.day }}天</el-tag>
+                </template>
               </el-table-column>
               <el-table-column
                 prop="amount"
-                label="兑换金额"
+                label="执行金额"
                 width="120"
                 align="center"
               >
-                <template #default="{ row }"> {{ row.amount }} </template>
+                <template #default="{ row }">
+                  <el-text type="success" class="font-medium">{{
+                    row.amount
+                  }}</el-text>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="after_amount"
+                label="账户余额"
+                width="120"
+                align="center"
+              >
+                <template #default="{ row }">
+                  <el-text type="primary" class="font-medium">{{
+                    row.after_amount || 0
+                  }}</el-text>
+                </template>
               </el-table-column>
               <el-table-column
                 prop="code"
-                label="礼品卡Code"
+                label="兑换码"
                 width="150"
                 align="center"
+                show-overflow-tooltip
               >
-                <template #default="{ row }"> {{ row.code || "-" }} </template>
+                <template #default="{ row }">
+                  <el-text class="font-mono exchange-code-text">{{
+                    row.code || "-"
+                  }}</el-text>
+                </template>
               </el-table-column>
               <el-table-column
                 prop="status"
-                label="状态"
+                label="执行状态"
                 width="100"
                 align="center"
               >
@@ -317,23 +351,43 @@
                 </template>
               </el-table-column>
               <el-table-column
-                prop="exchangeTime"
-                label="兑换时间"
-                width="180"
+                prop="room_name"
+                label="群聊名称"
+                width="150"
                 align="center"
-              >
-                <template #default="{ row }">
-                  {{ formatDateTime(row.exchangeTime) }}
-                </template>
-              </el-table-column>
-              <el-table-column
-                prop="errorMessage"
-                label="错误信息"
-                align="left"
                 show-overflow-tooltip
               >
                 <template #default="{ row }">
-                  {{ row.errorMessage || "-" }}
+                  {{ row.room_name || "-" }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="exchange_time"
+                label="执行时间"
+                width="160"
+                align="center"
+              >
+                <template #default="{ row }">
+                  <el-text class="time-text">{{
+                    formatDateTime(row.exchange_time || row.exchangeTime)
+                  }}</el-text>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="error_message"
+                label="错误信息"
+                align="left"
+                show-overflow-tooltip
+                min-width="200"
+              >
+                <template #default="{ row }">
+                  <el-text
+                    v-if="row.error_message || row.errorMessage"
+                    type="danger"
+                  >
+                    {{ row.error_message || row.errorMessage }}
+                  </el-text>
+                  <span v-else class="text-gray-400">-</span>
                 </template>
               </el-table-column>
             </el-table>
@@ -888,5 +942,72 @@ watch(
     height: 24px;
     line-height: 24px;
   }
+}
+
+/* 增强样式 */
+.detail-descriptions {
+  --el-descriptions-item-bordered-label-background: #fafafa;
+}
+
+.rate-text {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.fixed-amounts-detailed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mr-1 {
+  margin-right: 4px;
+}
+
+.mb-1 {
+  margin-bottom: 4px;
+}
+
+.exchange-code-text {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 12px;
+  color: #409eff;
+  background-color: #f0f8ff;
+  padding: 2px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.time-text {
+  font-size: 12px;
+  color: #606266;
+}
+
+.text-gray-400 {
+  color: #9ca3af;
+}
+
+/* 当前天数高亮 */
+.daily-amount-card.current-day {
+  background: linear-gradient(135deg, #e6f7ff 0%, #d1f2eb 100%);
+  border: 2px solid #67c23a;
+  position: relative;
+
+  .amount {
+    color: #67c23a;
+    font-weight: 600;
+  }
+}
+
+.current-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #67c23a;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 </style>
