@@ -118,6 +118,14 @@
         >
           批量导入
         </el-button>
+        <el-button
+          type="success"
+          :icon="useRenderIcon(Download)"
+          :loading="loading"
+          @click="handleExportExcel"
+        >
+          导出Excel
+        </el-button>
       </template>
       <template v-slot="{ size, dynamicColumns }">
         <pure-table
@@ -257,14 +265,16 @@
           <!-- 导入时间 -->
           <template #importedAt="{ row }">
             <span :class="row.importedAt ? '' : 'text-muted'">
-              {{ row.importedAt ? formatDateTime(row.importedAt) : "-" }}
+              {{
+                row.importedAt ? formatDateTimeFromHook(row.importedAt) : "-"
+              }}
             </span>
           </template>
 
           <!-- 创建时间 -->
           <template #createdAt="{ row }">
             <span class="text-gray-600">
-              {{ formatDateTime(row.createdAt) }}
+              {{ formatDateTimeFromHook(row.createdAt) }}
             </span>
           </template>
 
@@ -397,6 +407,7 @@ import EditPen from "@iconify-icons/ep/edit-pen";
 import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/ep/refresh";
 import Upload from "@iconify-icons/ep/upload";
+import Download from "@iconify-icons/ep/download";
 import View from "@iconify-icons/ep/view";
 import { ArrowDown } from "@element-plus/icons-vue";
 
@@ -435,7 +446,11 @@ const {
   getLoginStatusText,
   getLoginStatusTagType,
   formatFixedAmounts,
-  getAmountConstraintText
+  getAmountConstraintText,
+  formatCurrencyAmount,
+  formatCurrencyBalance,
+  formatDateTime: formatDateTimeFromHook,
+  handleExportExcel
 } = useHook();
 
 const searchFormRef = ref();
@@ -449,19 +464,7 @@ const statusDialogVisible = ref(false);
 const currentAccount = ref<Account | null>(null);
 const currentAccountId = ref<string>("");
 
-// 格式化日期时间
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return "-";
-  const date = new Date(dateStr);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-};
+// 已从hook中导入formatDateTime
 
 // 处理选择变化
 const handleSelectionChange = (selection: Account[]) => {

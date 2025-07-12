@@ -77,7 +77,7 @@ export function useHook() {
         let style = "info";
         if (row.gender === "MALE") {
           gender_desc = "男";
-          style = "";
+          style = "primary";
         } else if (row.gender == "FEMALE") {
           gender_desc = "女";
           style = "danger";

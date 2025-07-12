@@ -147,56 +147,61 @@ const {
             @page-current-change="getList"
           >
             <template #operation="{ row }">
-              <el-button
-                class="reset-margin"
-                link
-                type="primary"
-                :size="size"
-                @click="openDialog('编辑', row)"
-                :icon="useRenderIcon(EditPen)"
-                v-if="row.is_admin == 0"
-              >
-                修改
-              </el-button>
-              <el-popconfirm title="是否确认删除?" @confirm="handleDelete(row)">
-                <template #reference>
-                  <el-button
-                    class="reset-margin"
-                    link
-                    type="primary"
-                    :size="size"
-                    :icon="useRenderIcon(Delete)"
-                    v-if="row.is_admin == 0"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-popconfirm>
-              <el-dropdown>
+              <el-space>
                 <el-button
-                  class="ml-3 mt-[2px]"
+                  v-if="row.is_admin == 0"
+                  class="reset-margin"
                   link
                   type="primary"
                   :size="size"
-                  :icon="useRenderIcon(More)"
-                />
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item>
-                      <el-button
-                        :class="buttonClass"
-                        link
-                        type="primary"
-                        :size="size"
-                        :icon="useRenderIcon(Password)"
-                        @click="openResetPasswordDialog(row)"
-                      >
-                        重置密码
-                      </el-button>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+                  :icon="useRenderIcon(EditPen)"
+                  @click="openDialog('编辑', row)"
+                >
+                  修改
+                </el-button>
+                <el-popconfirm
+                  title="是否确认删除?"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      v-if="row.is_admin == 0"
+                      class="reset-margin"
+                      link
+                      type="primary"
+                      :size="size"
+                      :icon="useRenderIcon(Delete)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+                <el-dropdown>
+                  <el-button
+                    class="ml-3 mt-[2px]"
+                    link
+                    type="primary"
+                    :size="size"
+                    :icon="useRenderIcon(More)"
+                  />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item>
+                        <el-button
+                          :class="buttonClass"
+                          link
+                          type="primary"
+                          :size="size"
+                          :icon="useRenderIcon(Password)"
+                          @click="openResetPasswordDialog(row)"
+                        >
+                          重置密码
+                        </el-button>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </el-space>
             </template>
           </pure-table>
         </template>

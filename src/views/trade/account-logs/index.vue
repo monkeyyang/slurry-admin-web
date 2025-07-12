@@ -199,100 +199,39 @@
           @page-size-change="handleSizeChange"
           @page-current-change="handleCurrentChange"
         >
-          <!-- 账号 -->
-          <template #account="{ row }">
-            <span>{{ row.account_info?.account || row.account || "-" }}</span>
+          <!-- 国家 -->
+          <template #country="{ row }">
+            <span>
+              {{ row.country_code || row.country || "-" }}
+            </span>
           </template>
 
-          <!-- 计划信息 -->
-          <template #planInfo="{ row }">
-            <div v-if="row.plan_info" class="plan-info">
-              <div class="plan-name">
-                {{ row.plan_info.name || "未知计划" }}
-              </div>
-              <div class="plan-details">
-                <!-- 当前天数/总天数 -->
-                <el-tag size="small" type="primary">
-                  第{{ row.day || 0 }}天/{{ row.plan_info.plan_days || 0 }}天
-                </el-tag>
-                <!-- 计划金额 -->
-                <el-tag size="small" type="success">
-                  计划: {{ row.plan_info.total_amount || 0 }}
-                </el-tag>
-                <!-- 浮动金额 -->
-                <el-tag size="small" type="warning">
-                  浮动: {{ row.plan_info.float_amount || 0 }}
-                </el-tag>
-              </div>
-            </div>
-            <span v-else class="text-gray-400">未绑定</span>
-          </template>
-
-          <!-- 群聊名称 -->
-          <template #roomName="{ row }">
-            <span>{{ row.room_name || "-" }}</span>
-          </template>
-
-          <!-- 汇率信息 -->
-          <template #rateInfo="{ row }">
-            <div v-if="row.rate_info" class="rate-info">
-              <div class="rate-name">
-                {{ row.rate_info.name || "-" }}
-              </div>
-              <div class="rate-details">
-                <!-- 汇率值 -->
-                <el-tag size="small" type="success">
-                  汇率: {{ row.rate_info.rate || "-" }}
-                </el-tag>
-
-                <!-- 根据 amount_constraint 显示不同信息 -->
-                <template v-if="row.rate_info.amount_constraint === 'multiple'">
-                  <el-tag size="small" type="info">
-                    倍数: {{ row.rate_info.multiple_base || 0 }}
-                  </el-tag>
-                  <el-tag size="small" type="warning">
-                    {{ row.rate_info.min_amount || 0 }}-{{
-                      row.rate_info.max_amount || 0
-                    }}
-                  </el-tag>
-                </template>
-
-                <template
-                  v-else-if="row.rate_info.amount_constraint === 'fixed'"
-                >
-                  <el-tag size="small" type="primary">
-                    固定: {{ formatFixedAmounts(row.rate_info.fixed_amounts) }}
-                  </el-tag>
-                </template>
-
-                <template v-else-if="row.rate_info.amount_constraint === 'all'">
-                  <el-tag size="small" type="success"> 全面额 </el-tag>
-                </template>
-
-                <template v-else-if="row.rate_info.amount_constraint">
-                  <el-tag size="small" type="info">
-                    {{
-                      getAmountConstraintText(row.rate_info.amount_constraint)
-                    }}
-                  </el-tag>
-                </template>
-              </div>
-            </div>
-            <span v-else class="text-gray-400">无汇率信息</span>
-          </template>
-
-          <!-- 执行金额 -->
+          <!-- 金额 -->
           <template #amount="{ row }">
-            <span class="font-medium text-green-600">
-              {{ row.amount }}
+            <span v-if="row.amount" class="text-green-600 font-medium">
+              ${{ parseFloat(row.amount).toFixed(2) }}
             </span>
+            <span v-else class="text-gray-400">-</span>
           </template>
 
-          <!-- 账户余额 -->
-          <template #after_amount="{ row }">
-            <span class="font-medium text-blue-600">
-              {{ row.after_amount || 0 }}
+          <!-- 账号余款 -->
+          <template #balance="{ row }">
+            <span v-if="row.after_amount" class="text-blue-600 font-medium">
+              ${{ parseFloat(row.after_amount).toFixed(2) }}
             </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <!-- 错误信息 -->
+          <template #errorMessage="{ row }">
+            <span
+              v-if="row.error_message"
+              class="text-red-500"
+              :title="row.error_message"
+            >
+              {{ row.error_message }}
+            </span>
+            <span v-else class="text-gray-400">-</span>
           </template>
 
           <!-- 执行状态 -->
@@ -302,26 +241,107 @@
             </el-tag>
           </template>
 
-          <!-- 错误信息 -->
-          <template #error_message="{ row }">
-            <span v-if="row.error_message" class="text-red-500">
-              {{ row.error_message }}
+          <!-- 时间 -->
+          <template #updatedAt="{ row }">
+            <span class="text-gray-600">
+              {{ formatDateTime(row.updated_at || row.updatedAt) }}
+            </span>
+          </template>
+
+          <!-- 群聊 -->
+          <template #roomName="{ row }">
+            <span v-if="row.room_name" class="text-blue-600">
+              {{ row.room_name }}
             </span>
             <span v-else class="text-gray-400">-</span>
           </template>
 
-          <!-- 兑换时间 -->
-          <template #exchange_time="{ row }">
-            <span class="text-gray-600">
-              {{ formatDateTime(row.exchange_time) }}
-            </span>
+          <!-- 计划 -->
+          <template #planInfo="{ row }">
+            <div v-if="row.plan_info || row.plan" class="plan-info">
+              <div class="plan-details">
+                <!-- 当前天数/总天数 -->
+                <el-tag size="small" type="primary">
+                  第{{ row.day || row.currentPlanDay || 0 }}天/{{
+                    (row.plan_info || row.plan)?.plan_days || 0
+                  }}天
+                </el-tag>
+                <!-- 计划金额 -->
+                <el-tag size="small" type="success">
+                  计划: {{ (row.plan_info || row.plan)?.total_amount || 0 }}
+                </el-tag>
+                <!-- 浮动金额 -->
+                <el-tag size="small" type="warning">
+                  浮动: {{ (row.plan_info || row.plan)?.float_amount || 0 }}
+                </el-tag>
+              </div>
+            </div>
+            <span v-else class="text-gray-400">-</span>
           </template>
 
-          <!-- 创建时间 -->
-          <template #created_at="{ row }">
-            <span class="text-gray-600">
-              {{ formatDateTime(row.created_at) }}
-            </span>
+          <!-- 汇率 -->
+          <template #rateInfo="{ row }">
+            <div v-if="row.rate_info || row.rate" class="rate-info">
+              <div class="rate-details">
+                <!-- 汇率值 -->
+                <el-tag size="small" type="success">
+                  汇率: {{ (row.rate_info || row.rate)?.rate || "-" }}
+                </el-tag>
+
+                <!-- 根据 amount_constraint 显示不同信息 -->
+                <template
+                  v-if="
+                    (row.rate_info || row.rate)?.amount_constraint ===
+                    'multiple'
+                  "
+                >
+                  <el-tag size="small" type="info">
+                    倍数: {{ (row.rate_info || row.rate)?.multiple_base || 0 }}
+                  </el-tag>
+                  <el-tag size="small" type="warning">
+                    {{ (row.rate_info || row.rate)?.min_amount || 0 }}-{{
+                      (row.rate_info || row.rate)?.max_amount || 0
+                    }}
+                  </el-tag>
+                </template>
+
+                <template
+                  v-else-if="
+                    (row.rate_info || row.rate)?.amount_constraint === 'fixed'
+                  "
+                >
+                  <el-tag size="small" type="primary">
+                    固定:
+                    {{
+                      formatFixedAmounts(
+                        (row.rate_info || row.rate)?.fixed_amounts
+                      )
+                    }}
+                  </el-tag>
+                </template>
+
+                <template
+                  v-else-if="
+                    (row.rate_info || row.rate)?.amount_constraint === 'all'
+                  "
+                >
+                  <el-tag size="small" type="success"> 全面额 </el-tag>
+                </template>
+
+                <template
+                  v-else-if="(row.rate_info || row.rate)?.amount_constraint"
+                >
+                  <el-tag size="small" type="info">
+                    {{
+                      getAmountConstraintText(
+                        (row.rate_info || row.rate).amount_constraint
+                      )
+                    }}
+                  </el-tag>
+                </template>
+              </div>
+            </div>
+            <span v-else class="text-gray-400">-</span>
           </template>
 
           <!-- 操作 -->

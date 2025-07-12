@@ -10,6 +10,7 @@ import {
   type BatchImportAccountsRequest
 } from "@/api/trade/account";
 import { hasAuth } from "@/router/utils";
+import * as XLSX from "xlsx-js-style";
 
 // 定义表格列类型
 interface TableColumn {
@@ -160,15 +161,16 @@ export function useHook() {
   // 分页配置
   const pagination = reactive<PaginationProps>({
     total: 0,
-    pageSize: 20,
+    pageSize: 200,
     currentPage: 1,
-    background: true
+    background: true,
+    pageSizes: [50, 100, 200]
   });
 
   // 搜索表单参数
   const searchFormParams = reactive<AccountQueryParams>({
     pageNum: 1,
-    pageSize: 20,
+    pageSize: 200,
     account: "",
     country: "",
     status: "",
@@ -649,6 +651,391 @@ export function useHook() {
     }
   };
 
+  // 格式化计划信息
+  const formatPlanInfo = (account: Account): string => {
+    if (!account.plan) return "-";
+
+    const currentDay = account.currentPlanDay || 0;
+    const totalDays = account.plan.plan_days || 0;
+    const totalAmount = account.plan.total_amount || "0";
+    const floatAmount = account.plan.float_amount || "0";
+
+    return `第${currentDay}天/${totalDays}天\n计划: ${totalAmount}\n浮动: ${floatAmount}`;
+  };
+
+  // 格式化汇率信息
+  const formatRateInfo = (account: Account): string => {
+    if (!account.rate) return "-";
+
+    const rate = account.rate.rate || "-";
+    let rateText = `汇率: ${rate}`;
+
+    if (account.rate.amount_constraint === "multiple") {
+      const multipleBase = account.rate.multiple_base || 0;
+      const minAmount = account.rate.min_amount || 0;
+      const maxAmount = account.rate.max_amount || 0;
+      rateText += `\n倍数: ${multipleBase}\n${minAmount}-${maxAmount}`;
+    } else if (account.rate.amount_constraint === "fixed") {
+      const fixedAmounts = formatFixedAmounts(account.rate.fixed_amounts);
+      rateText += `\n固定: ${fixedAmounts}`;
+    } else if (account.rate.amount_constraint === "all") {
+      rateText += `\n全面额`;
+    }
+
+    return rateText;
+  };
+
+  // 格式化日期时间
+  const formatDateTime = (dateStr: string): string => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  };
+
+  // 根据国家代码获取货币符号
+  const getCurrencySymbol = (countryCode: string): string => {
+    const currencyMap: Record<string, string> = {
+      US: "$", // 美国
+      USA: "$", // 美国
+      CN: "¥", // 中国
+      CHN: "¥", // 中国
+      GB: "£", // 英国
+      UK: "£", // 英国
+      EU: "€", // 欧盟
+      EUR: "€", // 欧盟
+      DE: "€", // 德国
+      FR: "€", // 法国
+      IT: "€", // 意大利
+      ES: "€", // 西班牙
+      JP: "¥", // 日本
+      JPN: "¥", // 日本
+      KR: "₩", // 韩国
+      KOR: "₩", // 韩国
+      IN: "₹", // 印度
+      IND: "₹", // 印度
+      AU: "A$", // 澳大利亚
+      AUS: "A$", // 澳大利亚
+      CA: "C$", // 加拿大
+      CAN: "C$", // 加拿大
+      RU: "₽", // 俄罗斯
+      RUS: "₽", // 俄罗斯
+      BR: "R$", // 巴西
+      BRA: "R$", // 巴西
+      MX: "$", // 墨西哥
+      MEX: "$", // 墨西哥
+      SG: "S$", // 新加坡
+      SGP: "S$", // 新加坡
+      HK: "HK$", // 香港
+      HKG: "HK$", // 香港
+      TW: "NT$", // 台湾
+      TWN: "NT$", // 台湾
+      TH: "฿", // 泰国
+      THA: "฿", // 泰国
+      ID: "Rp", // 印尼
+      IDN: "Rp", // 印尼
+      MY: "RM", // 马来西亚
+      MYS: "RM", // 马来西亚
+      PH: "₱", // 菲律宾
+      PHL: "₱", // 菲律宾
+      VN: "₫", // 越南
+      VNM: "₫", // 越南
+      TR: "₺", // 土耳其
+      TUR: "₺", // 土耳其
+      ZA: "R", // 南非
+      ZAF: "R", // 南非
+      CH: "CHF", // 瑞士
+      CHE: "CHF", // 瑞士
+      NO: "kr", // 挪威
+      NOR: "kr", // 挪威
+      SE: "kr", // 瑞典
+      SWE: "kr", // 瑞典
+      DK: "kr", // 丹麦
+      DNK: "kr", // 丹麦
+      PL: "zł", // 波兰
+      POL: "zł", // 波兰
+      CZ: "Kč", // 捷克
+      CZE: "Kč", // 捷克
+      HU: "Ft", // 匈牙利
+      HUN: "Ft", // 匈牙利
+      IL: "₪", // 以色列
+      ISR: "₪", // 以色列
+      SA: "SR", // 沙特阿拉伯
+      SAU: "SR", // 沙特阿拉伯
+      AE: "AED", // 阿联酋
+      ARE: "AED", // 阿联酋
+      EG: "E£", // 埃及
+      EGY: "E£", // 埃及
+      NG: "₦", // 尼日利亚
+      NGA: "₦", // 尼日利亚
+      AR: "$", // 阿根廷
+      ARG: "$", // 阿根廷
+      CL: "$", // 智利
+      CHL: "$", // 智利
+      CO: "$", // 哥伦比亚
+      COL: "$", // 哥伦比亚
+      PE: "S/", // 秘鲁
+      PER: "S/", // 秘鲁
+      NZ: "NZ$", // 新西兰
+      NZL: "NZ$" // 新西兰
+    };
+    return currencyMap[countryCode?.toUpperCase()] || "$"; // 默认美元符号
+  };
+
+  // 格式化金额显示
+  const formatCurrencyAmount = (account: Account): string => {
+    if (!(account as any).amount) return "-";
+
+    // 获取国家代码
+    let countryCode = "";
+    if (typeof account.country === "string") {
+      countryCode = account.country;
+    } else if (account.country && typeof account.country === "object") {
+      countryCode =
+        (account.country as any).code ||
+        (account.country as any).country_code ||
+        "";
+    }
+
+    const currencySymbol = getCurrencySymbol(countryCode);
+    return `${currencySymbol}${parseFloat((account as any).amount).toFixed(2)}`;
+  };
+
+  // 格式化账号余款显示
+  const formatCurrencyBalance = (account: Account): string => {
+    if (!(account as any).balance) return "-";
+
+    // 获取国家代码
+    let countryCode = "";
+    if (typeof account.country === "string") {
+      countryCode = account.country;
+    } else if (account.country && typeof account.country === "object") {
+      countryCode =
+        (account.country as any).code ||
+        (account.country as any).country_code ||
+        "";
+    }
+
+    const currencySymbol = getCurrencySymbol(countryCode);
+    return `${currencySymbol}${parseFloat((account as any).balance).toFixed(2)}`;
+  };
+
+  // 导出Excel
+  const handleExportExcel = async () => {
+    try {
+      loading.value = true;
+
+      // 获取所有数据进行导出（不分页）
+      const exportParams = { ...searchFormParams, pageSize: 10000, pageNum: 1 };
+      const response = await accountApi.getList(exportParams);
+
+      if (!response || !response.data || !response.data.data) {
+        message("获取导出数据失败", { type: "error" });
+        return;
+      }
+
+      const exportData = response.data.data;
+
+      if (exportData.length === 0) {
+        message("没有数据可导出", { type: "warning" });
+        return;
+      }
+
+      // 准备Excel数据
+      const excelData = exportData.map((item: Account) => {
+        // 处理国家信息
+        let countryName = "-";
+        if (typeof item.country === "string") {
+          countryName = item.country;
+        } else if (
+          item.country &&
+          typeof item.country === "object" &&
+          "name_zh" in item.country
+        ) {
+          countryName = (item.country as any).name_zh;
+        }
+
+        // 获取国家代码
+        let countryCode = "";
+        if (typeof item.country === "string") {
+          countryCode = item.country;
+        } else if (item.country && typeof item.country === "object") {
+          countryCode =
+            (item.country as any).code ||
+            (item.country as any).country_code ||
+            "";
+        }
+
+        // 获取货币符号
+        const currencySymbol = getCurrencySymbol(countryCode);
+
+        return {
+          账号: item.account || "-",
+          金额: (item as any).amount
+            ? `${currencySymbol}${parseFloat((item as any).amount).toFixed(2)}`
+            : "-",
+          国家: countryName,
+          状态: getStatusText(item.status),
+          登录状态: getLoginStatusText(item.loginStatus),
+          计划: formatPlanInfo(item),
+          汇率: formatRateInfo(item),
+          群聊名称: item.room?.room_name || "-",
+          创建人: item.user?.nickname || "-",
+          更新时间: formatDateTime((item as any).updated_at || item.updatedAt),
+          创建时间: formatDateTime(item.createdAt)
+        };
+      });
+
+      // 创建工作簿和工作表
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 20 }, // 账号
+        { wch: 12 }, // 金额
+        { wch: 15 }, // 国家
+        { wch: 10 }, // 状态
+        { wch: 12 }, // 登录状态
+        { wch: 25 }, // 计划
+        { wch: 25 }, // 汇率
+        { wch: 20 }, // 群聊名称
+        { wch: 15 }, // 创建人
+        { wch: 20 }, // 更新时间
+        { wch: 20 } // 创建时间
+      ];
+      worksheet["!cols"] = colWidths;
+
+      // 获取数据范围
+      const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+
+      // 定义样式
+      const headerStyle = {
+        font: {
+          name: "微软雅黑",
+          sz: 12,
+          bold: true,
+          color: { rgb: "FFFFFF" }
+        },
+        fill: {
+          fgColor: { rgb: "4472C4" }
+        },
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
+          wrapText: true
+        },
+        border: {
+          top: { style: "thin", color: { rgb: "000000" } },
+          bottom: { style: "thin", color: { rgb: "000000" } },
+          left: { style: "thin", color: { rgb: "000000" } },
+          right: { style: "thin", color: { rgb: "000000" } }
+        }
+      };
+
+      const baseDataStyle = {
+        font: {
+          name: "微软雅黑",
+          sz: 10,
+          color: { rgb: "000000" }
+        },
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
+          wrapText: true
+        },
+        border: {
+          top: { style: "thin", color: { rgb: "000000" } },
+          bottom: { style: "thin", color: { rgb: "000000" } },
+          left: { style: "thin", color: { rgb: "000000" } },
+          right: { style: "thin", color: { rgb: "000000" } }
+        }
+      };
+
+      // 应用样式到所有单元格
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!worksheet[cellAddress]) continue;
+
+          if (R === 0) {
+            // 表头行
+            worksheet[cellAddress].s = headerStyle;
+          } else {
+            // 数据行
+            let cellStyle = JSON.parse(JSON.stringify(baseDataStyle)); // 深拷贝
+
+            // 状态列（D列，索引3）设置颜色
+            if (C === 3) {
+              const statusValue = worksheet[cellAddress].v;
+              if (statusValue === "已完成") {
+                cellStyle.font.color = { rgb: "67C23A" }; // 绿色
+                cellStyle.font.bold = true;
+              } else if (statusValue === "进行中") {
+                cellStyle.font.color = { rgb: "409EFF" }; // 蓝色
+                cellStyle.font.bold = true;
+              } else if (statusValue === "等待中") {
+                cellStyle.font.color = { rgb: "909399" }; // 灰色
+                cellStyle.font.bold = true;
+              } else if (statusValue === "锁定") {
+                cellStyle.font.color = { rgb: "F56C6C" }; // 红色
+                cellStyle.font.bold = true;
+              }
+            }
+
+            // 登录状态列（E列，索引4）设置颜色
+            if (C === 4) {
+              const loginStatusValue = worksheet[cellAddress].v;
+              if (loginStatusValue === "有效") {
+                cellStyle.font.color = { rgb: "67C23A" }; // 绿色
+                cellStyle.font.bold = true;
+              } else if (loginStatusValue === "失效") {
+                cellStyle.font.color = { rgb: "F56C6C" }; // 红色
+                cellStyle.font.bold = true;
+              }
+            }
+
+            worksheet[cellAddress].s = cellStyle;
+          }
+        }
+      }
+
+      // 设置行高
+      if (!worksheet["!rows"]) worksheet["!rows"] = [];
+
+      // 表头行高
+      worksheet["!rows"][0] = { hpt: 30 };
+
+      // 数据行高
+      for (let row = 1; row <= range.e.r; row++) {
+        worksheet["!rows"][row] = { hpt: 60 };
+      }
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(workbook, worksheet, "账号管理");
+
+      // 生成文件名
+      const now = new Date();
+      const fileName = `账号管理_${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}.xlsx`;
+
+      // 导出文件
+      XLSX.writeFile(workbook, fileName);
+
+      message(`成功导出 ${exportData.length} 条数据`, { type: "success" });
+    } catch (error) {
+      console.error("导出失败:", error);
+      message("导出失败", { type: "error" });
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     tableRef,
     loading,
@@ -678,6 +1065,12 @@ export function useHook() {
     getLoginStatusText,
     getLoginStatusTagType,
     formatFixedAmounts,
-    getAmountConstraintText
+    getAmountConstraintText,
+    formatPlanInfo,
+    formatRateInfo,
+    formatCurrencyAmount,
+    formatCurrencyBalance,
+    formatDateTime,
+    handleExportExcel
   };
 }

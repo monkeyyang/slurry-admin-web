@@ -78,7 +78,8 @@
     "vue-router": "^4.4.3",
     "vue-tippy": "^6.4.4",
     "vue-types": "^5.1.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.4.0",
@@ -119,6 +120,7 @@
     "rimraf": "^5.0.10",
     "rollup-plugin-visualizer": "^5.12.0",
     "sass": "^1.77.8",
+    "stream-browserify": "^3.0.0",
     "stylelint": "^16.8.2",
     "stylelint-config-recess-order": "^5.0.1",
     "stylelint-config-recommended-vue": "^1.5.0",

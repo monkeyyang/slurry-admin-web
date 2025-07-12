@@ -17,7 +17,11 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     base: VITE_PUBLIC_PATH,
     root,
     resolve: {
-      alias
+      alias: {
+        ...alias,
+        // Fix for xlsx-js-style stream module
+        stream: "stream-browserify"
+      }
     },
     // 服务端渲染
     server: {
@@ -68,7 +72,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,
-      __APP_INFO__: JSON.stringify(__APP_INFO__)
+      __APP_INFO__: JSON.stringify(__APP_INFO__),
+      global: "globalThis",
+      // Fix for xlsx-js-style stream module externalization
+      "process.env": {}
     }
   };
 };

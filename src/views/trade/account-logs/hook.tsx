@@ -57,7 +57,7 @@ export function useHook() {
   const statisticsLoading = ref(false);
   const countriesLoading = ref(false);
 
-  // 表格列配置 - 按要求顺序：id、兑换码、国家、执行金额、账号、计划、汇率、群聊、错误信息、执行状态、执行时间、操作
+  // 表格列配置 - 按要求顺序：ID、兑换码、国家、金额、账号余款、账号、错误信息、执行状态、时间、群聊、计划、汇率、操作
   const columns: TableColumnList = [
     {
       label: "ID",
@@ -75,62 +75,38 @@ export function useHook() {
     {
       label: "国家",
       prop: "country_code",
-      width: 80,
-      align: "center"
+      width: 100,
+      align: "center",
+      slot: "country"
     },
     {
-      label: "执行金额",
+      label: "金额",
       prop: "amount",
-      width: 120,
+      minWidth: 120,
       align: "center",
       slot: "amount"
     },
     {
-      label: "账户余额",
+      label: "账号余款",
       prop: "after_amount",
-      width: 120,
+      minWidth: 120,
       align: "center",
-      slot: "after_amount"
+      slot: "balance"
     },
     {
       label: "账号",
       prop: "account",
-      minWidth: 120,
-      align: "center",
-      showOverflowTooltip: true,
-      slot: "account"
-    },
-    {
-      label: "计划",
-      prop: "planInfo",
-      minWidth: 200,
-      align: "center",
-      showOverflowTooltip: true,
-      slot: "planInfo"
-    },
-    {
-      label: "汇率",
-      prop: "rateInfo",
-      minWidth: 200,
-      align: "center",
-      showOverflowTooltip: true,
-      slot: "rateInfo"
-    },
-    {
-      label: "群聊",
-      prop: "roomName",
       minWidth: 150,
       align: "center",
-      showOverflowTooltip: true,
-      slot: "roomName"
+      showOverflowTooltip: true
     },
     {
       label: "错误信息",
       prop: "error_message",
-      minWidth: 200,
+      minWidth: 150,
       align: "center",
-      showOverflowTooltip: true,
-      slot: "error_message"
+      slot: "errorMessage",
+      showOverflowTooltip: true
     },
     {
       label: "执行状态",
@@ -140,16 +116,40 @@ export function useHook() {
       slot: "status"
     },
     {
-      label: "执行时间",
-      prop: "exchange_time",
-      width: 150,
+      label: "时间",
+      prop: "updated_at",
+      minWidth: 160,
       align: "center",
-      slot: "exchange_time"
+      slot: "updatedAt"
+    },
+    {
+      label: "群聊",
+      prop: "roomName",
+      minWidth: 150,
+      align: "center",
+      slot: "roomName",
+      showOverflowTooltip: true
+    },
+    {
+      label: "计划",
+      prop: "planInfo",
+      minWidth: 200,
+      align: "center",
+      slot: "planInfo",
+      showOverflowTooltip: true
+    },
+    {
+      label: "汇率",
+      prop: "rateInfo",
+      minWidth: 220,
+      align: "center",
+      slot: "rateInfo",
+      showOverflowTooltip: true
     },
     {
       label: "操作",
       fixed: "right",
-      width: 120,
+      minWidth: 120,
       slot: "operation"
     }
   ];
@@ -157,15 +157,16 @@ export function useHook() {
   // 分页配置
   const pagination = reactive<PaginationProps>({
     total: 0,
-    pageSize: 20,
+    pageSize: 200,
     currentPage: 1,
-    background: true
+    background: true,
+    pageSizes: [50, 100, 200]
   });
 
   // 搜索表单参数
   const searchFormParams = reactive<ExecutionLogQueryParams>({
     page: 1,
-    pageSize: 20,
+    pageSize: 200,
     accountId: "",
     planId: "",
     executionStatus: "",
@@ -399,7 +400,7 @@ export function useHook() {
     }
     Object.assign(searchFormParams, {
       page: 1,
-      pageSize: 20,
+      pageSize: 200,
       accountId: "",
       planId: "",
       executionStatus: "",
@@ -478,6 +479,165 @@ export function useHook() {
     }
   };
 
+  // 根据国家代码获取货币符号
+  const getCurrencySymbol = (countryCode: string): string => {
+    const currencyMap: Record<string, string> = {
+      US: "$", // 美国
+      USA: "$", // 美国
+      CN: "¥", // 中国
+      CHN: "¥", // 中国
+      GB: "£", // 英国
+      UK: "£", // 英国
+      EU: "€", // 欧盟
+      EUR: "€", // 欧盟
+      DE: "€", // 德国
+      FR: "€", // 法国
+      IT: "€", // 意大利
+      ES: "€", // 西班牙
+      JP: "¥", // 日本
+      JPN: "¥", // 日本
+      KR: "₩", // 韩国
+      KOR: "₩", // 韩国
+      IN: "₹", // 印度
+      IND: "₹", // 印度
+      AU: "A$", // 澳大利亚
+      AUS: "A$", // 澳大利亚
+      CA: "C$", // 加拿大
+      CAN: "C$", // 加拿大
+      RU: "₽", // 俄罗斯
+      RUS: "₽", // 俄罗斯
+      BR: "R$", // 巴西
+      BRA: "R$", // 巴西
+      MX: "$", // 墨西哥
+      MEX: "$", // 墨西哥
+      SG: "S$", // 新加坡
+      SGP: "S$", // 新加坡
+      HK: "HK$", // 香港
+      HKG: "HK$", // 香港
+      TW: "NT$", // 台湾
+      TWN: "NT$", // 台湾
+      TH: "฿", // 泰国
+      THA: "฿", // 泰国
+      ID: "Rp", // 印尼
+      IDN: "Rp", // 印尼
+      MY: "RM", // 马来西亚
+      MYS: "RM", // 马来西亚
+      PH: "₱", // 菲律宾
+      PHL: "₱", // 菲律宾
+      VN: "₫", // 越南
+      VNM: "₫", // 越南
+      TR: "₺", // 土耳其
+      TUR: "₺", // 土耳其
+      ZA: "R", // 南非
+      ZAF: "R", // 南非
+      CH: "CHF", // 瑞士
+      CHE: "CHF", // 瑞士
+      NO: "kr", // 挪威
+      NOR: "kr", // 挪威
+      SE: "kr", // 瑞典
+      SWE: "kr", // 瑞典
+      DK: "kr", // 丹麦
+      DNK: "kr", // 丹麦
+      PL: "zł", // 波兰
+      POL: "zł", // 波兰
+      CZ: "Kč", // 捷克
+      CZE: "Kč", // 捷克
+      HU: "Ft", // 匈牙利
+      HUN: "Ft", // 匈牙利
+      IL: "₪", // 以色列
+      ISR: "₪", // 以色列
+      SA: "SR", // 沙特阿拉伯
+      SAU: "SR", // 沙特阿拉伯
+      AE: "AED", // 阿联酋
+      ARE: "AED", // 阿联酋
+      EG: "E£", // 埃及
+      EGY: "E£", // 埃及
+      NG: "₦", // 尼日利亚
+      NGA: "₦", // 尼日利亚
+      AR: "$", // 阿根廷
+      ARG: "$", // 阿根廷
+      CL: "$", // 智利
+      CHL: "$", // 智利
+      CO: "$", // 哥伦比亚
+      COL: "$", // 哥伦比亚
+      PE: "S/", // 秘鲁
+      PER: "S/", // 秘鲁
+      NZ: "NZ$", // 新西兰
+      NZL: "NZ$" // 新西兰
+    };
+    return currencyMap[countryCode?.toUpperCase()] || "$"; // 默认美元符号
+  };
+
+  // 格式化金额显示
+  const formatCurrencyAmount = (item: any): string => {
+    if (!item.amount) return "-";
+
+    // 获取国家代码
+    let countryCode = "";
+    if (typeof item.country === "string") {
+      countryCode = item.country;
+    } else if (item.country && typeof item.country === "object") {
+      countryCode = item.country.code || item.country.country_code || "";
+    } else if (item.country_code) {
+      countryCode = item.country_code;
+    }
+
+    const currencySymbol = getCurrencySymbol(countryCode);
+    return `${currencySymbol}${parseFloat(item.amount).toFixed(2)}`;
+  };
+
+  // 格式化账号余款显示
+  const formatCurrencyBalance = (item: any): string => {
+    if (!item.after_amount) return "-";
+
+    // 获取国家代码
+    let countryCode = "";
+    if (typeof item.country === "string") {
+      countryCode = item.country;
+    } else if (item.country && typeof item.country === "object") {
+      countryCode = item.country.code || item.country.country_code || "";
+    } else if (item.country_code) {
+      countryCode = item.country_code;
+    }
+
+    const currencySymbol = getCurrencySymbol(countryCode);
+    return `${currencySymbol}${parseFloat(item.after_amount).toFixed(2)}`;
+  };
+
+  // 格式化计划信息
+  const formatPlanInfo = (item: any): string => {
+    if (!item.plan) return "-";
+
+    const currentDay = item.currentPlanDay || 0;
+    const totalDays = item.plan.plan_days || 0;
+    const totalAmount = item.plan.total_amount || "0";
+    const floatAmount = item.plan.float_amount || "0";
+
+    return `第${currentDay}天/${totalDays}天\n计划: ${totalAmount}\n浮动: ${floatAmount}`;
+  };
+
+  // 格式化汇率信息
+  const formatRateInfo = (item: any): string => {
+    if (!item.rate) return "-";
+
+    const rate = item.rate.rate || "-";
+    let rateText = `汇率: ${rate}`;
+
+    if (item.rate.amount_constraint === "multiple") {
+      const multipleBase = item.rate.multiple_base || 0;
+      const minAmount = item.rate.min_amount || 0;
+      const maxAmount = item.rate.max_amount || 0;
+      rateText += `\n倍数: ${multipleBase}\n${minAmount}-${maxAmount}`;
+    } else if (item.rate.amount_constraint === "fixed") {
+      const fixedAmounts = formatFixedAmounts(item.rate.fixed_amounts);
+      rateText += `\n固定: ${fixedAmounts}`;
+    } else if (item.rate.amount_constraint === "all") {
+      rateText += `\n全面额`;
+    }
+
+    return rateText;
+  };
+
   return {
     tableRef,
     loading,
@@ -508,6 +668,11 @@ export function useHook() {
     getExecutionStatusTagType,
     formatDateTime,
     formatFixedAmounts,
-    getAmountConstraintText
+    getAmountConstraintText,
+    getCurrencySymbol,
+    formatCurrencyAmount,
+    formatCurrencyBalance,
+    formatPlanInfo,
+    formatRateInfo
   };
 }

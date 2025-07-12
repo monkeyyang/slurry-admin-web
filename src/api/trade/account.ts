@@ -146,7 +146,7 @@ export const accountApi = {
   // 更新账号状态
   updateStatus: (id: string, status: string) => {
     return http.request<ApiResponse<Account>>(
-      "patch",
+      "put",
       `/trade/itunes/accounts/${id}/status`,
       { data: { status } }
     );
