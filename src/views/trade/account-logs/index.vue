@@ -178,6 +178,14 @@
         >
           刷新统计
         </el-button>
+        <el-button
+          type="primary"
+          :icon="useRenderIcon(Download)"
+          :loading="loading"
+          @click="handleExportExcel"
+        >
+          导出Excel
+        </el-button>
       </template>
       <template v-slot="{ size, dynamicColumns }">
         <pure-table
@@ -380,6 +388,7 @@ import {
 import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/ep/refresh";
 import View from "@iconify-icons/ep/view";
+import Download from "@iconify-icons/ep/download";
 import { useHook } from "./hook";
 import DetailDialog from "./components/DetailDialog.vue";
 import type { ExecutionLog } from "@/api/trade/monitor";
@@ -414,7 +423,8 @@ const {
   getExecutionStatusTagType,
   formatDateTime,
   formatFixedAmounts,
-  getAmountConstraintText
+  getAmountConstraintText,
+  handleExportExcel
 } = useHook();
 
 // 重新定义查看详情函数
