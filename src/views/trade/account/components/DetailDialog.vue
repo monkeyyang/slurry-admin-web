@@ -190,8 +190,7 @@
               <h4>每日计划金额</h4>
               <div class="daily-amounts-grid">
                 <div
-                  v-for="(amount, index) in accountDetail.plan.daily_amounts ||
-                  accountDetail.plan.dailyAmounts"
+                  v-for="(amount, index) in accountDetail.plan.daily_amounts"
                   :key="index"
                   class="daily-amount-card"
                   :class="{
@@ -321,7 +320,10 @@
               >
                 <template #default="{ row }">
                   <el-text type="primary" class="font-medium">{{
-                    row.after_amount || 0
+                    row.after_amount ||
+                    row.afterAmount ||
+                    row.account_balance ||
+                    0
                   }}</el-text>
                 </template>
               </el-table-column>
@@ -358,7 +360,7 @@
                 show-overflow-tooltip
               >
                 <template #default="{ row }">
-                  {{ row.room_name || "-" }}
+                  {{ row.room_name || row.roomName || row.chat_name || "-" }}
                 </template>
               </el-table-column>
               <el-table-column
@@ -442,7 +444,9 @@ const todayTotalAmount = computed(() => {
   const today = new Date().toDateString();
   const todayCompletions = accountDetail.value.completedDays.filter(item => {
     if (!item.time) return false;
-    return new Date(item.time).toDateString() === today;
+    return (
+      new Date(item.time).toDateString() === today && item.status === "complete"
+    );
   });
 
   return todayCompletions.reduce((sum, item) => sum + (item.amount || 0), 0);
